@@ -208,6 +208,7 @@ const EventsList = () => {
     };
 
     const [tempRules, setTempRules] = useState(initialRules);
+    const [isCreating, setIsCreating] = useState(false);
 
     const initialFormState = {
         title: '',
@@ -361,6 +362,7 @@ const EventsList = () => {
 
     const openEditModal = (event) => {
         setEditingEventId(event.id);
+        setIsCreating(false);
         setFormData({
             title: event.title || '',
             description: event.description || '',
@@ -378,11 +380,12 @@ const EventsList = () => {
             setTempRules(initialRules);
         }
 
-        setShowModal(true);
+        setShowModal(false);
     };
 
     const openCreateModal = () => {
         setEditingEventId(null);
+        setIsCreating(true);
         setFormData(initialFormState);
         setTempRules(initialRules);
         setShowModal(true);
@@ -394,6 +397,110 @@ const EventsList = () => {
         if (!error) fetchData();
         else alert('Errore: ' + error.message);
     };
+
+    const renderForm = () => (
+        <form className="flex flex-col gap-8" onSubmit={handleSave}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="flex flex-col gap-6">
+                    <div>
+                        <label className="label">Titolo Evento</label>
+                        <input type="text" className="input" required placeholder="es. Visita Specialistica" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="label">Durata (min)</label>
+                            <input type="number" className="input" required min="5" value={formData.duration_minutes} onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })} />
+                        </div>
+                        <div>
+                            <label className="label">Luogo / Sede</label>
+                            <input type="text" className="input" placeholder="es. Studio Medico" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="label">Slug URL</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-text-muted">/book/</span>
+                            <input type="text" className="input pl-14" required placeholder="visita-30" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="label">Tipo di Ricorrenza</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {['recurring', 'single_week', 'recurring_from'].map((type) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => {
+                                        const newType = type === 'recurring_from' ? 'recurring' : type;
+                                        setFormData({
+                                            ...formData,
+                                            event_type: newType,
+                                            start_date: type === 'recurring' && !formData.start_date ? null : (formData.start_date || new Date())
+                                        });
+                                    }}
+                                    className={`py-2 px-1 text-[10px] uppercase font-bold border-2 rounded-lg transition-all
+                                        ${(type === 'recurring' && formData.event_type === 'recurring' && !formData.start_date) ||
+                                            (type === 'single_week' && formData.event_type === 'single_week') ||
+                                            (type === 'recurring_from' && formData.event_type === 'recurring' && formData.start_date)
+                                            ? 'bg-primary/20 border-primary text-primary'
+                                            : 'bg-glass-bg border-glass-border text-text-muted hover:border-primary/40'}
+                                    `}
+                                >
+                                    {type === 'recurring' ? 'Sempre' : type === 'single_week' ? 'Settimana (7 gg)' : 'Da data...'}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                    <div>
+                        <div className="flex justify-between items-center mb-4">
+                            <label className="label !mb-0">Orari Settimanali</label>
+                            <div className="flex items-center gap-2 text-[10px] text-text-muted font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
+                                <Clock size={10} /> Disponibilità Inline
+                            </div>
+                        </div>
+                        <div className="bg-glass-bg border border-glass-border rounded-2xl p-4 shadow-inner">
+                            {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map(day => (
+                                <WeekDayRow
+                                    key={day}
+                                    day={day}
+                                    rules={tempRules[day]}
+                                    onToggle={toggleDay}
+                                    onUpdate={updateDayRule}
+                                    onAdd={addDayRule}
+                                    onRemove={removeDayRule}
+                                    onCopyAll={copyToAll}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    {(formData.event_type === 'single_week' || (formData.event_type === 'recurring' && formData.start_date)) && (
+                        <div>
+                            <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Settimana Specificata' : 'Data di inizio'}</label>
+                            <WeekPicker
+                                selectedDate={formData.start_date ? new Date(formData.start_date) : null}
+                                onChange={(date) => setFormData({ ...formData, start_date: date })}
+                            />
+                        </div>
+                    )}
+                    <div>
+                        <label className="label">Descrizione Breve</label>
+                        <textarea className="input" rows="3" placeholder="Opzionale..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t border-glass-border">
+                <button type="button" onClick={() => { setEditingEventId(null); setShowModal(false); }} className="btn btn-outline">Annulla</button>
+                <button type="submit" className="btn btn-primary px-10" disabled={saving}>
+                    {saving ? <Loader2 className="animate-spin" size={20} /> : (editingEventId ? 'Salva Modifiche' : 'Crea Evento')}
+                </button>
+            </div>
+        </form>
+    );
 
     return (
         <div className="animate-fade-in">
@@ -407,7 +514,7 @@ const EventsList = () => {
                 </button>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min">
                 {loading ? (
                     [1, 2, 3].map(i => <div key={i} className="card h-64 animate-pulse bg-glass-bg"></div>)
                 ) : events.length === 0 ? (
@@ -420,37 +527,59 @@ const EventsList = () => {
                     </div>
                 ) : (
                     events.map((event) => (
-                        <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} key={event.id} className="card flex flex-col group relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start mb-4">
-                                    <span className={`text-[10px] tracking-widest uppercase font-black px-2 py-1 rounded-md ${event.event_type === 'recurring' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'}`}>
-                                        {event.event_type === 'recurring'
-                                            ? (event.start_date ? 'Ricorrente (dal ' + format(new Date(event.start_date), 'd/MM', { locale: it }) + ')' : 'Sempre Attivo')
-                                            : 'Settimana (7 gg)'}
-                                    </span>
-                                    <button onClick={() => handleDelete(event.id)} className="text-text-muted hover:text-error transition-colors p-1"><Trash2 size={16} /></button>
+                        <React.Fragment key={event.id}>
+                            <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`card flex flex-col group relative overflow-hidden transition-all ${editingEventId === event.id ? 'ring-2 ring-primary border-transparent' : ''}`}>
+                                <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <span className={`text-[10px] tracking-widest uppercase font-black px-2 py-1 rounded-md ${event.event_type === 'recurring' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'}`}>
+                                            {event.event_type === 'recurring'
+                                                ? (event.start_date ? 'Ricorrente (dal ' + format(new Date(event.start_date), 'd/MM', { locale: it }) + ')' : 'Sempre Attivo')
+                                                : 'Settimana (7 gg)'}
+                                        </span>
+                                        <button onClick={() => handleDelete(event.id)} className="text-text-muted hover:text-error transition-colors p-1"><Trash2 size={16} /></button>
+                                    </div>
+                                    <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
+                                    <p className="text-sm text-text-muted mb-6 line-clamp-2 h-10 leading-relaxed text-balance">{event.description || 'Nessuna descrizione.'}</p>
+                                    <div className="space-y-3 mb-6 bg-glass-bg/50 p-4 rounded-xl border border-glass-border">
+                                        <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Clock size={16} className="text-primary" /> <span>{event.duration_minutes} minuti</span></div>
+                                        <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Calendar size={16} className="text-primary" /> <span className="truncate">{event.availabilities?.title || 'Nessuna regola'}</span></div>
+                                    </div>
                                 </div>
-                                <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
-                                <p className="text-sm text-text-muted mb-6 line-clamp-2 h-10 leading-relaxed text-balance">{event.description || 'Nessuna descrizione.'}</p>
-                                <div className="space-y-3 mb-6 bg-glass-bg/50 p-4 rounded-xl border border-glass-border">
-                                    <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Clock size={16} className="text-primary" /> <span>{event.duration_minutes} minuti</span></div>
-                                    <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Calendar size={16} className="text-primary" /> <span className="truncate">{event.availabilities?.title || 'Nessuna regola'}</span></div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => { setSelectedEventForManual(event); setShowManualModal(true); }} className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/20" title="Prenotazione Manuale (Telefono)">
+                                        <Phone size={14} /> Prenota
+                                    </button>
+                                    <button onClick={() => openEditModal(event)} className={`btn flex-1 text-xs gap-1.5 py-2.5 ${editingEventId === event.id ? 'btn-primary' : 'btn-outline'}`}>
+                                        <Edit size={14} /> {editingEventId === event.id ? 'In Corso...' : 'Edit'}
+                                    </button>
+                                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-outline p-2.5 text-text-muted hover:text-primary" title="Copia Link">
+                                        <LinkIcon size={14} />
+                                    </button>
+                                    <a href={`/book/${event.slug}`} target="_blank" rel="noreferrer" className="btn btn-outline p-2.5 text-text-muted hover:text-primary"><ExternalLink size={14} /></a>
                                 </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => { setSelectedEventForManual(event); setShowManualModal(true); }} className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/20" title="Prenotazione Manuale (Telefono)">
-                                    <Phone size={14} /> Prenota
-                                </button>
-                                <button onClick={() => openEditModal(event)} className="btn btn-outline flex-1 text-xs gap-1.5 py-2.5">
-                                    <Edit size={14} /> Edit
-                                </button>
-                                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-outline p-2.5 text-text-muted hover:text-primary" title="Copia Link">
-                                    <LinkIcon size={14} />
-                                </button>
-                                <a href={`/book/${event.slug}`} target="_blank" rel="noreferrer" className="btn btn-outline p-2.5 text-text-muted hover:text-primary"><ExternalLink size={14} /></a>
-                            </div>
-                        </motion.div>
+                            </motion.div>
+
+                            {/* Inline Edit Form */}
+                            <AnimatePresence>
+                                {editingEventId === event.id && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        className="col-span-1 md:col-span-2 lg:col-span-3 overflow-hidden"
+                                    >
+                                        <div className="card border-primary/30 bg-primary/5 shadow-inner">
+                                            <div className="flex justify-between items-center mb-6">
+                                                <h3 className="text-2xl font-bold text-primary italic">Modifica: {event.title}</h3>
+                                                <button onClick={() => setEditingEventId(null)} className="text-text-muted hover:text-error"><Plus size={24} className="rotate-45" /></button>
+                                            </div>
+                                            {renderForm()}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </React.Fragment>
                     ))
                 )}
             </div>
@@ -460,110 +589,15 @@ const EventsList = () => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 overflow-y-auto max-h-[90vh]">
-                            <h2 className="text-3xl font-bold mb-1 tracking-tight">{editingEventId ? 'Modifica Evento' : 'Nuovo Tipo di Evento'}</h2>
-                            <p className="text-text-muted text-sm mb-8">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
-
-                            <form className="flex flex-col gap-8" onSubmit={handleSave}>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    <div className="flex flex-col gap-6">
-                                        <div>
-                                            <label className="label">Titolo Evento</label>
-                                            <input type="text" className="input" required placeholder="es. Visita Specialistica" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="label">Durata (min)</label>
-                                                <input type="number" className="input" required min="5" value={formData.duration_minutes} onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })} />
-                                            </div>
-                                            <div>
-                                                <label className="label">Luogo / Sede</label>
-                                                <input type="text" className="input" placeholder="es. Studio Medico" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="label">Slug URL</label>
-                                            <div className="relative">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-text-muted">/book/</span>
-                                                <input type="text" className="input pl-14" required placeholder="visita-30" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="label">Tipo di Ricorrenza</label>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {['recurring', 'single_week', 'recurring_from'].map((type) => (
-                                                    <button
-                                                        key={type}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newType = type === 'recurring_from' ? 'recurring' : type;
-                                                            setFormData({
-                                                                ...formData,
-                                                                event_type: newType,
-                                                                start_date: type === 'recurring' && !formData.start_date ? null : (formData.start_date || new Date())
-                                                            });
-                                                        }}
-                                                        className={`py-2 px-1 text-[10px] uppercase font-bold border-2 rounded-lg transition-all
-                                                            ${(type === 'recurring' && formData.event_type === 'recurring' && !formData.start_date) ||
-                                                                (type === 'single_week' && formData.event_type === 'single_week') ||
-                                                                (type === 'recurring_from' && formData.event_type === 'recurring' && formData.start_date)
-                                                                ? 'bg-primary/20 border-primary text-primary'
-                                                                : 'bg-glass-bg border-glass-border text-text-muted hover:border-primary/40'}
-                                                        `}
-                                                    >
-                                                        {type === 'recurring' ? 'Sempre' : type === 'single_week' ? 'Settimana (7 gg)' : 'Da data...'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-6">
-                                        <div>
-                                            <div className="flex justify-between items-center mb-4">
-                                                <label className="label !mb-0">Orari Settimanali</label>
-                                                <div className="flex items-center gap-2 text-[10px] text-text-muted font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
-                                                    <Clock size={10} /> Disponibilità Inline
-                                                </div>
-                                            </div>
-                                            <div className="bg-glass-bg border border-glass-border rounded-2xl p-4 shadow-inner">
-                                                {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map(day => (
-                                                    <WeekDayRow
-                                                        key={day}
-                                                        day={day}
-                                                        rules={tempRules[day]}
-                                                        onToggle={toggleDay}
-                                                        onUpdate={updateDayRule}
-                                                        onAdd={addDayRule}
-                                                        onRemove={removeDayRule}
-                                                        onCopyAll={copyToAll}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {(formData.event_type === 'single_week' || (formData.event_type === 'recurring' && formData.start_date)) && (
-                                            <div>
-                                                <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Settimana Specificata' : 'Data di inizio'}</label>
-                                                <WeekPicker
-                                                    selectedDate={formData.start_date ? new Date(formData.start_date) : null}
-                                                    onChange={(date) => setFormData({ ...formData, start_date: date })}
-                                                />
-                                            </div>
-                                        )}
-                                        <div>
-                                            <label className="label">Descrizione Breve</label>
-                                            <textarea className="input" rows="3" placeholder="Opzionale..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}></textarea>
-                                        </div>
-                                    </div>
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h2 className="text-3xl font-bold mb-1 tracking-tight">Nuovo Tipo di Evento</h2>
+                                    <p className="text-text-muted text-sm">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
                                 </div>
+                                <button onClick={() => setShowModal(false)} className="text-text-muted hover:text-error"><Plus size={32} className="rotate-45" /></button>
+                            </div>
 
-                                <div className="flex justify-end gap-3 pt-6 border-t border-glass-border">
-                                    <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline">Annulla</button>
-                                    <button type="submit" className="btn btn-primary px-10" disabled={saving}>
-                                        {saving ? <Loader2 className="animate-spin" size={20} /> : (editingEventId ? 'Salva Modifiche' : 'Crea Evento')}
-                                    </button>
-                                </div>
-                            </form>
+                            {renderForm()}
                         </motion.div>
                     </div>
                 )}
