@@ -17,7 +17,7 @@ function App() {
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="events" element={<EventsList />} />
-            <Route path="availabilities" element={<AvailabilitiesList />} />
+            {/* <Route path="availabilities" element={<AvailabilitiesList />} /> */}
             <Route path="bookings" element={<BookingsList />} />
             <Route path="settings" element={<Settings />} />
           </Route>

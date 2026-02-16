@@ -221,8 +221,17 @@ const BookingPage = () => {
                                         const isPastDay = isBefore(day, today);
                                         const isSelected = selectedDate && isSameDay(day, selectedDate);
                                         const isMonthDay = isSameMonth(day, currentMonth);
+
+                                        // Base availability for recurring events
                                         let isAvailable = isMonthDay && !isPastDay;
 
+                                        // Apply activation date (start_date) for recurring events
+                                        if (event.event_type === 'recurring' && event.start_date) {
+                                            const start = startOfDay(new Date(event.start_date));
+                                            if (isBefore(day, start)) isAvailable = false;
+                                        }
+
+                                        // Apply strict 7-day window for single_week events
                                         if (event.event_type === 'single_week' && event.start_date) {
                                             const start = startOfDay(new Date(event.start_date));
                                             const end = addDays(start, 6);
