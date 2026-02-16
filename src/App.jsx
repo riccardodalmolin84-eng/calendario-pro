@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import AdminDashboard from './pages/admin/Dashboard';
 import EventsList from './pages/admin/Events';
 import AvailabilitiesList from './pages/admin/Availabilities';
@@ -35,13 +35,8 @@ function AdminLayout() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="container flex-1">
-        <Routes>
-          <Route index element={<AdminDashboard />} />
-          <Route path="events" element={<EventsList />} />
-          <Route path="availabilities" element={<AvailabilitiesList />} />
-          <Route path="settings" element={<Settings />} />
-        </Routes>
+      <main className="container flex-1 py-8">
+        <Outlet />
       </main>
     </div>
   );
