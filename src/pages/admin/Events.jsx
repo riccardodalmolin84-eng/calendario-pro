@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock, Loader2, ExternalLink, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock, Loader2, ExternalLink, MapPin, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, startOfMonth, endOfMonth, getDay, addDays, isBefore, startOfToday } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, startOfMonth, endOfMonth, getDay, addDays, isBefore, startOfToday, startOfDay } from 'date-fns';
 import { it } from 'date-fns/locale';
+import ManualBookingModal from '../../components/ManualBookingModal';
 
 const WeekPicker = ({ selectedDate, onChange }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -11,13 +12,14 @@ const WeekPicker = ({ selectedDate, onChange }) => {
     const lastDayOfMonth = endOfMonth(currentMonth);
     const days = eachDayOfInterval({ start: startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }), end: endOfWeek(lastDayOfMonth, { weekStartsOn: 1 }) });
 
-    const weekStart = selectedDate ? startOfWeek(selectedDate, { weekStartsOn: 1 }) : null;
-    const weekEnd = selectedDate ? endOfWeek(selectedDate, { weekStartsOn: 1 }) : null;
+    // Modified to be a rolling week (start date + 6 days)
+    const weekStart = selectedDate ? startOfDay(selectedDate) : null;
+    const weekEnd = selectedDate ? addDays(weekStart, 6) : null;
 
     return (
         <div className="bg-black/20 border border-white/5 rounded-2xl p-5 backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Selezione Settimana</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Seleziona Data Inizio</h3>
                 <div className="flex items-center gap-4">
                     <span className="text-xs font-bold text-text-main">{format(currentMonth, 'MMMM yyyy', { locale: it })}</span>
                     <div className="flex gap-1">
@@ -37,9 +39,10 @@ const WeekPicker = ({ selectedDate, onChange }) => {
             </div>
             <div className="grid grid-cols-7 gap-1.5">
                 {days.map((day, i) => {
-                    const isInSelectedWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
+                    const isInRollingWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
                     const isOutsideMonth = !isSameMonth(day, currentMonth);
                     const isToday = isSameDay(day, new Date());
+                    const isStartDay = weekStart && isSameDay(day, weekStart);
 
                     return (
                         <button
@@ -47,16 +50,17 @@ const WeekPicker = ({ selectedDate, onChange }) => {
                             type="button"
                             onClick={() => onChange(day)}
                             className={`aspect-square flex items-center justify-center rounded-xl text-[11px] transition-all duration-300 relative group
-                                ${isInSelectedWeek
-                                    ? 'bg-primary text-white font-bold shadow-lg shadow-primary/20'
+                                ${isInRollingWeek
+                                    ? 'bg-primary/20 text-white font-bold'
                                     : 'hover:bg-white/10 text-text-muted hover:text-text-main'}
+                                ${isStartDay ? '!bg-primary shadow-lg shadow-primary/20 scale-110 z-10' : ''}
                                 ${isOutsideMonth ? 'opacity-10' : ''}
-                                ${isToday && !isInSelectedWeek ? 'border border-primary/30' : ''}
+                                ${isToday && !isInRollingWeek ? 'border border-primary/30' : ''}
                             `}
                         >
                             {format(day, 'd')}
-                            {isInSelectedWeek && i % 7 === 0 && (
-                                <motion.div layoutId="week-glow" className="absolute inset-0 bg-primary/20 blur-xl -z-10" />
+                            {isInRollingWeek && i % 7 !== 0 && ( // Just a subtle indicator for the range
+                                <div className="absolute inset-0 bg-primary/10 rounded-xl -z-10" />
                             )}
                         </button>
                     );
@@ -66,7 +70,7 @@ const WeekPicker = ({ selectedDate, onChange }) => {
                 <div className="mt-6 p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-center gap-3">
                     <Calendar size={14} className="text-primary" />
                     <div className="text-[10px] font-bold text-text-main uppercase tracking-wider">
-                        Dal {format(weekStart, 'd MMMM')} al {format(weekEnd, 'd MMMM')}
+                        Settimana dal {format(weekStart, 'd MMMM')} al {format(weekEnd, 'd MMMM')}
                     </div>
                 </div>
             )}
@@ -79,6 +83,8 @@ const EventsList = () => {
     const [availabilities, setAvailabilities] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showManualModal, setShowManualModal] = useState(false);
+    const [selectedEventForManual, setSelectedEventForManual] = useState(null);
     const [saving, setSaving] = useState(false);
     const [editingEventId, setEditingEventId] = useState(null);
 
@@ -133,8 +139,6 @@ const EventsList = () => {
         e.preventDefault();
         setSaving(true);
 
-        // Map UI 'recurring' with start_date to 'recurring' but with start_date value
-        // single_week is the other one
         const dataToSave = { ...formData };
         if (dataToSave.event_type === 'recurring' && !dataToSave.start_date) {
             dataToSave.start_date = null;
@@ -230,7 +234,7 @@ const EventsList = () => {
                                     <span className={`text-[10px] tracking-widest uppercase font-black px-2 py-1 rounded-md ${event.event_type === 'recurring' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'}`}>
                                         {event.event_type === 'recurring'
                                             ? (event.start_date ? 'Ricorrente (dal ' + format(new Date(event.start_date), 'd/MM', { locale: it }) + ')' : 'Sempre Attivo')
-                                            : 'Settimana Singola'}
+                                            : 'Settimana (7 gg)'}
                                     </span>
                                     <button onClick={() => handleDelete(event.id)} className="text-text-muted hover:text-error transition-colors p-1"><Trash2 size={16} /></button>
                                 </div>
@@ -242,8 +246,15 @@ const EventsList = () => {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button onClick={() => openEditModal(event)} className="btn btn-outline flex-1 text-xs gap-1.5 py-2.5"><Edit size={14} /> Modifica</button>
-                                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/10"><LinkIcon size={14} /> Link</button>
+                                <button onClick={() => { setSelectedEventForManual(event); setShowManualModal(true); }} className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/20" title="Prenotazione Manuale (Telefono)">
+                                    <Phone size={14} /> Prenota
+                                </button>
+                                <button onClick={() => openEditModal(event)} className="btn btn-outline flex-1 text-xs gap-1.5 py-2.5">
+                                    <Edit size={14} /> Edit
+                                </button>
+                                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-outline p-2.5 text-text-muted hover:text-primary" title="Copia Link">
+                                    <LinkIcon size={14} />
+                                </button>
                                 <a href={`/book/${event.slug}`} target="_blank" rel="noreferrer" className="btn btn-outline p-2.5 text-text-muted hover:text-primary"><ExternalLink size={14} /></a>
                             </div>
                         </motion.div>
@@ -308,7 +319,7 @@ const EventsList = () => {
                                                                 : 'bg-glass-bg border-glass-border text-text-muted hover:border-primary/40'}
                                                         `}
                                                     >
-                                                        {type === 'recurring' ? 'Sempre' : type === 'single_week' ? 'Settimana Singola' : 'Da data...'}
+                                                        {type === 'recurring' ? 'Sempre' : type === 'single_week' ? 'Settimana (7 gg)' : 'Da data...'}
                                                     </button>
                                                 ))}
                                             </div>
@@ -318,7 +329,7 @@ const EventsList = () => {
                                     <div className="flex flex-col gap-6">
                                         {(formData.event_type === 'single_week' || (formData.event_type === 'recurring' && formData.start_date)) && (
                                             <div>
-                                                <label className="label">{formData.event_type === 'single_week' ? 'Seleziona la Settimana' : 'Data di inizio'}</label>
+                                                <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Data di Inizio' : 'Data di inizio'}</label>
                                                 <WeekPicker
                                                     selectedDate={formData.start_date ? new Date(formData.start_date) : null}
                                                     onChange={(date) => setFormData({ ...formData, start_date: date })}
@@ -343,6 +354,12 @@ const EventsList = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            <ManualBookingModal
+                isOpen={showManualModal}
+                onClose={() => setShowManualModal(false)}
+                event={selectedEventForManual}
+            />
         </div>
     );
 };

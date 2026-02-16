@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Calendar as CalendarIcon, Clock, MapPin, CheckCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore } from 'date-fns';
+import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore, startOfDay, startOfWeek, endOfWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 const BookingPage = () => {
@@ -228,11 +228,13 @@ const BookingPage = () => {
                                                         }
                                                     }
 
-                                                    // Rule: Only show days within the specific week if single_week
+                                                    // Rule: Only show days within the specific "rolling week" if single_week
                                                     if (event.event_type === 'single_week' && event.start_date) {
-                                                        const weekStart = startOfWeek(new Date(event.start_date), { weekStartsOn: 1 });
-                                                        const weekEnd = endOfWeek(new Date(event.start_date), { weekStartsOn: 1 });
-                                                        if (day < weekStart || day > weekEnd) {
+                                                        const startDate = startOfDay(new Date(event.start_date));
+                                                        const endDate = addDays(startDate, 6); // 7 days total including start
+
+                                                        // Check strictly if day is before start or after end
+                                                        if (isBefore(day, startDate) || isAfter(day, endDate)) {
                                                             isPast = true;
                                                         }
                                                     }
