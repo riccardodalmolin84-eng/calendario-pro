@@ -37,7 +37,7 @@ const BookingPage = () => {
                                     <div className="p-2 bg-primary/20 rounded-lg">
                                         <Calendar size={24} />
                                     </div>
-                                    <span className="font-bold text-lg">Calendario PRO</span>
+                                    <span className="font-bold text-lg">CalendarioAloe</span>
                                 </div>
                                 <h1 className="text-2xl mb-4">{event.title}</h1>
                                 <div className="flex flex-col gap-3 text-text-muted mb-6">

@@ -18,7 +18,7 @@ const Navbar = () => {
                 <div className="bg-primary p-2 rounded-lg">
                     <Calendar color="white" size={24} />
                 </div>
-                <span className="text-xl font-bold tracking-tight">Calendario PRO</span>
+                <span className="text-xl font-bold tracking-tight">CalendarioAloe</span>
             </div>
 
             <div className="flex gap-6">
