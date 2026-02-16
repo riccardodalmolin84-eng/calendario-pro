@@ -15,7 +15,7 @@ const Settings = () => {
 
 A presto!`
     });
-    
+
     // TextArea ref for inserting tags at cursor position
     const textAreaRef = useRef(null);
 
@@ -93,9 +93,9 @@ A presto!`
         const end = textarea.selectionEnd;
         const text = profile.whatsapp_template;
         const newText = text.substring(0, start) + tag + text.substring(end);
-        
+
         setProfile({ ...profile, whatsapp_template: newText });
-        
+
         // Restore focus and cursor position (after the inserted tag)
         setTimeout(() => {
             textarea.focus();
@@ -126,7 +126,7 @@ A presto!`
                 console.warn('Error replacing tag', tag, e);
             }
         });
-        
+
         // Replace admin name
         message = message.replace(/{admin_name}/g, profile.email.split('@')[0] || 'Admin');
 
@@ -193,19 +193,19 @@ A presto!`
                             />
                         </div>
                     </section>
-                    
+
                     {/* Tags & Preview */}
                     <div className="flex flex-col gap-8">
-                        
+
                         {/* Tags Selection */}
                         <section className="card">
-                             <div className="flex items-center gap-2 mb-4">
+                            <div className="flex items-center gap-2 mb-4">
                                 <LinkIcon size={18} className="text-primary" />
                                 <h3 className="font-bold text-sm uppercase tracking-wider">Tag Disponibili</h3>
-                             </div>
-                             <p className="text-text-muted text-xs mb-4">Clicca su un tag per inserirlo nel messaggio.</p>
-                             
-                             <div className="flex flex-wrap gap-2 mb-6">
+                            </div>
+                            <p className="text-text-muted text-xs mb-4">Clicca su un tag per inserirlo nel messaggio.</p>
+
+                            <div className="flex flex-wrap gap-2 mb-6">
                                 {/* Special Bulk Tag */}
                                 <button
                                     onClick={() => insertTag('{event_links}')}
@@ -215,9 +215,9 @@ A presto!`
                                     <span>{'{event_links}'}</span>
                                     <span className="opacity-50 font-normal">(Tutti i link)</span>
                                 </button>
-                             </div>
+                            </div>
 
-                             <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2 leading-none">
+                            <div className="space-y-2 max-h-[200px] overflow-y-auto custom-scrollbar pr-2 leading-none">
                                 {events.map(event => (
                                     <button
                                         key={event.id}
@@ -230,14 +230,29 @@ A presto!`
                                         </code>
                                     </button>
                                 ))}
-                             </div>
+                            </div>
                         </section>
 
                         {/* Live Preview */}
                         <section className="card flex-1 flex flex-col bg-black/40 border-dashed">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Eye className="text-primary/60" size={18} />
-                                <h3 className="font-bold text-sm uppercase tracking-wider text-text-muted">Anteprima Reale</h3>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Eye className="text-primary/60" size={18} />
+                                    <h3 className="font-bold text-sm uppercase tracking-wider text-text-muted">Anteprima Reale</h3>
+                                </div>
+                                {profile.phone && (
+                                    <button
+                                        onClick={() => {
+                                            const cleanPhone = profile.phone.replace(/\D/g, '');
+                                            const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(previewMessage)}`;
+                                            window.open(url, '_blank');
+                                        }}
+                                        className="text-[10px] bg-primary text-white px-2 py-1 rounded-full font-bold flex items-center gap-1 hover:scale-105 transition-transform"
+                                    >
+                                        <MessageSquare size={10} />
+                                        Invia a Me Stesso
+                                    </button>
+                                )}
                             </div>
                             <div className="flex-1 rounded-2xl p-4 relative group overflow-hidden">
                                 <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary/5 to-transparent" />
@@ -250,7 +265,7 @@ A presto!`
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 pb-12">
-                     <button
+                    <button
                         onClick={handleSave}
                         disabled={saving}
                         className="btn btn-primary gap-2 px-12 py-4 text-sm shadow-xl shadow-primary/20 w-full sm:w-auto"
