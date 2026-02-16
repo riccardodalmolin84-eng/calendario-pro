@@ -118,28 +118,29 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 100 }}>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={onClose}
-                className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 p-0 overflow-hidden max-h-[90vh] flex flex-col"
+                className="card w-full max-w-4xl relative z-10 shadow-2xl p-0 overflow-hidden flex flex-col bg-[#111] border-white/10"
+                style={{ maxHeight: '90vh' }}
             >
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-glass-bg">
+                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
                     <div>
-                        <h2 className="text-xl font-bold">Prenotazione Manuale (Telefono)</h2>
-                        <p className="text-xs text-text-muted">Stai prenotando per: <span className="text-primary font-bold">{event?.title}</span></p>
+                        <h2 className="text-xl font-bold">Prenotazione Manuale</h2>
+                        <p className="text-xs text-text-muted italic">Evento: <span className="text-primary">{event?.title}</span></p>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-text-muted transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full text-text-muted transition-colors">
                         <X size={20} />
                     </button>
                 </div>
