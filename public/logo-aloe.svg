@@ -1,48 +1,53 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bgGradient" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#7a8c4c" />
-      <stop offset="100%" stop-color="#606c38" />
+    <!-- Background Gradient -->
+    <linearGradient id="bg_grad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8a9a5b" />
+      <stop offset="100%" stop-color="#6b8e23" />
     </linearGradient>
-    <filter id="innerShadow" x="-20%" y="-20%" width="140%" height="140%">
+    
+    <!-- Engraved/Debossed Effect Filter -->
+    <filter id="engrave" x="-20%" y="-20%" width="140%" height="140%" filterUnits="objectBoundingBox">
+      <!-- Shadow -->
       <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
-      <feOffset dx="4" dy="4"/>
+      <feOffset dx="-4" dy="-4" in="blur" result="offsetShadow"/>
       <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="shadowDiff"/>
-      <feFlood flood-color="black" flood-opacity="0.3"/>
-      <feComposite in2="shadowDiff" operator="in" result="innerShadow"/>
-      <feComposite in2="SourceGraphic" operator="over"/>
-    </filter>
-    <filter id="softGlow" x="-10%" y="-10%" width="120%" height="120%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      
+      <!-- Highlight -->
+      <feFlood flood-color="white" flood-opacity="0.2" result="whiteFlood"/>
+      <feComposite in2="shadowDiff" operator="in" result="highlight"/>
+      
+      <!-- Depth Shadow -->
+      <feFlood flood-color="black" flood-opacity="0.4" result="blackFlood"/>
+      <feComposite in2="blur" operator="in" result="depthShadow"/>
+      
+      <feMerge>
+        <feMergeNode in="depthShadow"/>
+        <feMergeNode in="highlight"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <!-- Main Background Container -->
-  <rect width="512" height="512" rx="120" fill="url(#bgGradient)"/>
+  <!-- Base Plate -->
+  <rect width="512" height="512" rx="140" fill="#889a5f"/>
   
-  <!-- Subtle Inner Border for Depth -->
-  <rect x="10" y="10" width="492" height="492" rx="115" stroke="white" stroke-opacity="0.1" stroke-width="2"/>
+  <!-- Subtle lighting on the plate -->
+  <rect x="0" y="0" width="512" height="512" rx="140" fill="white" fill-opacity="0.05"/>
 
-  <!-- Calendar Motif (Debossed Style) -->
-  <g filter="url(#innerShadow)" opacity="0.9">
-    <!-- Calendar Body -->
-    <rect x="140" y="150" width="232" height="212" rx="20" fill="#283618" fill-opacity="0.15"/>
-    <!-- Calendar Header Line -->
-    <path d="M140 200H372" stroke="#283618" stroke-opacity="0.2" stroke-width="4"/>
-    <!-- Calendar Rings -->
-    <rect x="180" y="130" width="12" height="40" rx="6" fill="#283618" fill-opacity="0.2"/>
-    <rect x="320" y="130" width="12" height="40" rx="6" fill="#283618" fill-opacity="0.2"/>
+  <!-- Engraved Elements Group -->
+  <g filter="url(#engrave)">
+    <!-- Main Calendar Outline -->
+    <path d="M140 160C140 148.954 148.954 140 160 140H352C363.046 140 372 148.954 372 160V352C372 363.046 363.046 372 352 372H160C148.954 372 140 363.046 140 352V160Z" stroke="black" stroke-opacity="0.3" stroke-width="8" fill="none"/>
+    
+    <!-- Calendar Horizontal Section -->
+    <path d="M140 210H372" stroke="black" stroke-opacity="0.3" stroke-width="6"/>
+    
+    <!-- Aloe Leaf Silhouette Integration -->
+    <path d="M110 180C70 140 90 60 140 40C120 80 130 140 170 175" stroke="black" stroke-opacity="0.4" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M85 220C50 190 60 110 100 80C85 120 95 170 135 205" stroke="black" stroke-opacity="0.3" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <path d="M165 160C155 110 180 70 230 60C190 100 200 140 235 185" stroke="black" stroke-opacity="0.25" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    
+    <!-- Engraved "12" -->
+    <text x="256" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="120" fill="black" fill-opacity="0.3">12</text>
   </g>
-
-  <!-- Aloe Leaf (Integrated and Soft) -->
-  <g filter="url(#innerShadow)" opacity="0.8">
-    <path d="M120 180C90 140 105 80 140 60C125 90 135 130 160 160" stroke="#283618" stroke-opacity="0.3" stroke-width="14" stroke-linecap="round" fill="none"/>
-    <path d="M100 210C65 180 70 110 95 80C85 110 90 150 120 190" stroke="#283618" stroke-opacity="0.25" stroke-width="12" stroke-linecap="round" fill="none"/>
-    <path d="M150 170C140 130 165 90 200 80C175 110 185 140 210 175" stroke="#283618" stroke-opacity="0.2" stroke-width="10" stroke-linecap="round" fill="none"/>
-  </g>
-
-  <!-- "12" Number (Engraved) -->
-  <text x="50%" y="62%" dominant-baseline="middle" text-anchor="middle" font-family="Inter, sans-serif" font-weight="800" font-size="110" fill="#283618" fill-opacity="0.25" filter="url(#innerShadow)">12</text>
-
 </svg>

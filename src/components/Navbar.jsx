@@ -30,7 +30,7 @@ const Navbar = () => {
         <nav className="card mt-4 mx-4 flex flex-col md:flex-row items-center justify-between py-3 px-6 shadow-xl border-primary/10 relative z-50 bg-bg-card">
             <div className="flex items-center justify-between w-full md:w-auto">
                 <div className="flex items-center gap-2">
-                    <img src="/logo-aloe.svg" alt="Aloe Logo" className="w-4 h-4 rounded-md shadow-sm" />
+                    <img src="/logo-aloe.svg" alt="Aloe Logo" className="w-3 h-3 rounded-sm shadow-sm" />
                     <span className="text-lg font-bold tracking-tighter text-text-main">Aloe<span className="text-primary">Admin</span></span>
                 </div>
 
