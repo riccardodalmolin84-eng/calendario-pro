@@ -10,70 +10,104 @@ const WeekPicker = ({ selectedDate, onChange }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const firstDayOfMonth = startOfMonth(currentMonth);
     const lastDayOfMonth = endOfMonth(currentMonth);
-    const days = eachDayOfInterval({ start: startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }), end: endOfWeek(lastDayOfMonth, { weekStartsOn: 1 }) });
+    const days = eachDayOfInterval({
+        start: startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }),
+        end: endOfWeek(lastDayOfMonth, { weekStartsOn: 1 })
+    });
 
-    // Modified to be a rolling week (start date + 6 days)
     const weekStart = selectedDate ? startOfDay(selectedDate) : null;
     const weekEnd = selectedDate ? addDays(weekStart, 6) : null;
 
     return (
-        <div className="bg-black/20 border border-white/5 rounded-2xl p-5 backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Seleziona Data Inizio</h3>
-                <div className="flex items-center gap-4">
-                    <span className="text-xs font-bold text-text-main">{format(currentMonth, 'MMMM yyyy', { locale: it })}</span>
-                    <div className="flex gap-1">
-                        <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors">
-                            <ChevronLeft size={14} />
-                        </button>
-                        <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors">
-                            <ChevronRight size={14} />
-                        </button>
-                    </div>
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+            {/* Header: Month/Year and Navigation */}
+            <div className="bg-white/5 p-4 border-b border-white/5 flex justify-between items-center">
+                <span className="text-sm font-bold text-text-main capitalize">
+                    {format(currentMonth, 'MMMM yyyy', { locale: it })}
+                </span>
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                        className="p-1.5 hover:bg-white/10 rounded-lg border border-white/5 transition-colors"
+                    >
+                        <ChevronLeft size={16} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                        className="p-1.5 hover:bg-white/10 rounded-lg border border-white/5 transition-colors"
+                    >
+                        <ChevronRight size={16} />
+                    </button>
                 </div>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-2">
-                {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((d, i) => (
-                    <div key={i} className="text-[9px] text-center font-black text-text-muted/40 uppercase">{d}</div>
-                ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1.5">
-                {days.map((day, i) => {
-                    const isInRollingWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
-                    const isOutsideMonth = !isSameMonth(day, currentMonth);
-                    const isToday = isSameDay(day, new Date());
-                    const isStartDay = weekStart && isSameDay(day, weekStart);
 
-                    return (
-                        <button
-                            key={i}
-                            type="button"
-                            onClick={() => onChange(day)}
-                            className={`aspect-square flex items-center justify-center rounded-xl text-[11px] transition-all duration-300 relative group
-                                ${isInRollingWeek
-                                    ? 'bg-primary/20 text-white font-bold'
-                                    : 'hover:bg-white/10 text-text-muted hover:text-text-main'}
-                                ${isStartDay ? '!bg-primary shadow-lg shadow-primary/20 scale-110 z-10' : ''}
-                                ${isOutsideMonth ? 'opacity-10' : ''}
-                                ${isToday && !isInRollingWeek ? 'border border-primary/30' : ''}
-                            `}
-                        >
-                            {format(day, 'd')}
-                            {isInRollingWeek && i % 7 !== 0 && ( // Just a subtle indicator for the range
-                                <div className="absolute inset-0 bg-primary/10 rounded-xl -z-10" />
-                            )}
-                        </button>
-                    );
-                })}
+            {/* Calendar Body */}
+            <div className="p-4 bg-black/40">
+                {/* Day Names Header */}
+                <div className="grid grid-cols-7 mb-4">
+                    {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((d) => (
+                        <div key={d} className="text-[10px] text-center font-bold text-text-muted/60 uppercase tracking-tighter">
+                            {d}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Days Grid */}
+                <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden shadow-inner">
+                    {days.map((day, i) => {
+                        const isInRollingWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
+                        const isOutsideMonth = !isSameMonth(day, currentMonth);
+                        const isToday = isSameDay(day, new Date());
+                        const isStartDay = weekStart && isSameDay(day, weekStart);
+                        const isEndDay = weekEnd && isSameDay(day, weekEnd);
+
+                        return (
+                            <button
+                                key={i}
+                                type="button"
+                                onClick={() => onChange(day)}
+                                className={`aspect-square flex flex-col items-center justify-center text-xs transition-all duration-200 relative
+                                    ${isOutsideMonth ? 'bg-black/20 text-text-muted/20' : 'bg-black/40 text-text-main hover:bg-white/5'}
+                                    ${isInRollingWeek ? '!bg-primary/20 !text-white z-10' : ''}
+                                    ${isStartDay ? '!bg-primary !text-white font-black shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]' : ''}
+                                    ${isEndDay ? 'border-r-2 border-primary/40' : ''}
+                                `}
+                            >
+                                <span className={`z-10 ${isStartDay ? 'scale-110' : ''}`}>
+                                    {format(day, 'd')}
+                                </span>
+                                {isToday && !isStartDay && (
+                                    <div className="absolute bottom-1.5 w-1 h-1 bg-primary rounded-full" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
-            {weekStart && (
-                <div className="mt-6 p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-center gap-3">
-                    <Calendar size={14} className="text-primary" />
-                    <div className="text-[10px] font-bold text-text-main uppercase tracking-wider">
-                        Settimana dal {format(weekStart, 'd MMMM')} al {format(weekEnd, 'd MMMM')}
+
+            {/* Selected Range Footer */}
+            <div className="bg-white/5 p-4 border-t border-white/5 flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Calendar size={16} className="text-primary" />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] text-text-muted uppercase font-bold tracking-widest leading-none">Inizio Settimana</span>
+                        <span className="text-xs font-bold text-text-main">
+                            {weekStart ? format(weekStart, 'EEEE d MMMM', { locale: it }) : 'Nessuna data selezionata'}
+                        </span>
                     </div>
                 </div>
-            )}
+                {weekStart && (
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className="h-px flex-1 bg-white/5" />
+                        <span className="text-[9px] font-black text-primary/60 uppercase">Durerà fino al {format(weekEnd, 'd MMMM')}</span>
+                        <div className="h-px flex-1 bg-white/5" />
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
