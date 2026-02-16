@@ -137,8 +137,12 @@ const BookingPage = () => {
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString()
         }]);
-        if (!error) setStep(3);
-        else alert('Errore: ' + error.message);
+        if (!error) {
+            fetchBookings();
+            setStep(3);
+        } else {
+            alert('Errore: ' + error.message);
+        }
         setSubmitting(false);
     };
 
