@@ -418,10 +418,18 @@ const EventsList = () => {
                     </div>
                     <div>
                         <label className="label">Slug URL</label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-text-muted">/book/</span>
-                            <input type="text" className="input pl-14" required placeholder="visita-30" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
+                        <div className="flex items-center bg-bg-input border border-border rounded-xl overflow-hidden focus-within:border-primary transition-all">
+                            <span className="px-3 py-3 bg-primary/5 text-[10px] font-bold text-text-muted border-r border-border uppercase tracking-tight">/book/</span>
+                            <input
+                                type="text"
+                                className="flex-1 bg-transparent border-none outline-none px-3 py-2 text-sm text-text-main font-semibold"
+                                required
+                                placeholder="visita-30"
+                                value={formData.slug}
+                                onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+                            />
                         </div>
+                        <p className="text-[9px] text-text-muted mt-1 italic">L'indirizzo web unico per questo evento.</p>
                     </div>
                     <div>
                         <label className="label">Tipo di Ricorrenza</label>
