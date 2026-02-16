@@ -1,21 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-:root {
-  --font-family: 'Inter', sans-serif;
-  --primary: #111111;
-  --primary-hover: #333333;
-  --accent: #2ecc71;
-  --bg-main: #ffffff;
-  --bg-card: #ffffff;
-  --bg-secondary: #f4f5f7;
-  --text-main: #111111;
-  --text-muted: #888888;
-  --border: #eeeeee;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
-}
-
 * {
   box-sizing: border-box;
   margin: 0;
@@ -23,45 +7,432 @@
 }
 
 body {
-  font-family: var(--font-family);
-  background-color: #fcfcfc;
-  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background-color: #fafafa;
+  color: #111;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Typography */
-h1,
-h2,
-h3,
-h4 {
-  font-weight: 800;
-  letter-spacing: -0.02em;
+/* Grid System */
+.grid {
+  display: grid;
 }
 
-/* Layout */
-.booking-container {
-  max-width: 1100px;
-  margin: 4rem auto;
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.03);
-  border: 1px solid #f0f0f0;
-  display: grid;
-  grid-template-columns: 320px 1fr 300px;
-  min-height: 650px;
+.grid-cols-7 {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Flexbox */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-start {
+  justify-content: flex-start;
+}
+
+/* Spacing */
+.gap-1 {
+  gap: 0.25rem;
+}
+
+.gap-2 {
+  gap: 0.5rem;
+}
+
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+.gap-6 {
+  gap: 1.5rem;
+}
+
+.gap-8 {
+  gap: 2rem;
+}
+
+.space-y-3>*+* {
+  margin-top: 0.75rem;
+}
+
+.space-y-4>*+* {
+  margin-top: 1rem;
+}
+
+.space-y-6>*+* {
+  margin-top: 1.5rem;
+}
+
+/* Padding */
+.p-1 {
+  padding: 0.25rem;
+}
+
+.p-10 {
+  padding: 2.5rem;
+}
+
+.py-2 {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.py-5 {
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+}
+
+.py-12 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+.py-20 {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+.px-3 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.px-6 {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.px-12 {
+  padding-left: 3rem;
+  padding-right: 3rem;
+}
+
+/* Margin */
+.mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+.mb-8 {
+  margin-bottom: 2rem;
+}
+
+.mb-10 {
+  margin-bottom: 2.5rem;
+}
+
+.mb-12 {
+  margin-bottom: 3rem;
+}
+
+.mt-0\.5 {
+  margin-top: 0.125rem;
+}
+
+.mt-1 {
+  margin-top: 0.25rem;
+}
+
+.mt-4 {
+  margin-top: 1rem;
+}
+
+.mt-8 {
+  margin-top: 2rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+/* Sizing */
+.w-1 {
+  width: 0.25rem;
+}
+
+.w-2 {
+  width: 0.5rem;
+}
+
+.w-10 {
+  width: 2.5rem;
+}
+
+.w-24 {
+  width: 6rem;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-1 {
+  height: 0.25rem;
+}
+
+.h-2 {
+  height: 0.5rem;
+}
+
+.h-10 {
+  height: 2.5rem;
+}
+
+.h-24 {
+  height: 6rem;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.max-w-lg {
+  max-width: 32rem;
+}
+
+.max-w-md {
+  max-width: 28rem;
+}
+
+/* Positioning */
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.bottom-1 {
+  bottom: 0.25rem;
+}
+
+.bottom-1\.5 {
+  bottom: 0.375rem;
+}
+
+.z-10 {
+  z-index: 10;
+}
+
+/* Display */
+.hidden {
+  display: none;
+}
+
+/* Borders */
+.border {
+  border-width: 1px;
+}
+
+.border-2 {
+  border-width: 2px;
+}
+
+.border-r {
+  border-right-width: 1px;
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.rounded-xl {
+  border-radius: 0.75rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+/* Colors */
+.bg-white {
+  background-color: #ffffff;
+}
+
+.bg-black {
+  background-color: #000000;
+}
+
+.text-white {
+  color: #ffffff;
+}
+
+.text-black {
+  color: #000000;
+}
+
+/* Typography */
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+}
+
+.text-xl {
+  font-size: 1.25rem;
+}
+
+.text-2xl {
+  font-size: 1.5rem;
+}
+
+.text-4xl {
+  font-size: 2.25rem;
+}
+
+.text-5xl {
+  font-size: 3rem;
+}
+
+.font-bold {
+  font-weight: 700;
+}
+
+.font-black {
+  font-weight: 900;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+
+.tracking-tighter {
+  letter-spacing: -0.05em;
+}
+
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+
+.tracking-widest {
+  letter-spacing: 0.1em;
+}
+
+.leading-tight {
+  line-height: 1.25;
+}
+
+.leading-none {
+  line-height: 1;
+}
+
+.leading-relaxed {
+  line-height: 1.625;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Aspect Ratio */
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
+/* Overflow */
+.overflow-hidden {
   overflow: hidden;
 }
 
-@media (max-width: 1024px) {
-  .booking-container {
-    grid-template-columns: 1fr;
-    margin: 1rem;
-    border-radius: 16px;
-  }
+.overflow-y-auto {
+  overflow-y: auto;
 }
 
-/* Shared Components */
+/* Flex */
+.flex-1 {
+  flex: 1 1 0%;
+}
+
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+/* Opacity */
+.opacity-0 {
+  opacity: 0;
+}
+
+/* Transitions */
+.transition-all {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-colors {
+  transition: color 0.2s, background-color 0.2s;
+}
+
+/* Cursor */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-not-allowed {
+  cursor: not-allowed;
+}
+
+/* Components */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -71,19 +442,24 @@ h4 {
   border-radius: 12px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   font-family: inherit;
   font-size: 0.875rem;
 }
 
 .btn-primary {
-  background: var(--primary);
+  background-color: #111;
   color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .input {
@@ -100,8 +476,33 @@ h4 {
 
 .input:focus {
   background: white;
-  border-color: var(--primary);
+  border-color: #111;
   box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.03);
+}
+
+/* Booking Container */
+.booking-container {
+  max-width: 1100px;
+  margin: 3rem auto;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+  border: 1px solid #f0f0f0;
+  display: grid;
+  grid-template-columns: 320px 1fr 300px;
+  min-height: 650px;
+  overflow: hidden;
+}
+
+.col-span-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1024px) {
+  .booking-container {
+    grid-template-columns: 1fr;
+    margin: 1rem;
+  }
 }
 
 /* Scrollbar */
@@ -118,63 +519,7 @@ h4 {
   border-radius: 10px;
 }
 
-/* Utils */
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.gap-2 {
-  gap: 0.5rem;
-}
-
-.gap-4 {
-  gap: 1rem;
-}
-
-.text-xs {
-  font-size: 0.75rem;
-}
-
-.text-sm {
-  font-size: 0.875rem;
-}
-
-.font-bold {
-  font-weight: 700;
-}
-
-.font-black {
-  font-weight: 900;
-}
-
-.uppercase {
-  text-transform: uppercase;
-}
-
-.tracking-tight {
-  letter-spacing: -0.025em;
-}
-
-.tracking-widest {
-  letter-spacing: 0.1em;
-}
-
-.text-muted {
-  color: var(--text-muted);
-}
-
+/* Animations */
 .animate-spin {
   animation: spin 1s linear infinite;
 }
@@ -187,4 +532,22 @@ h4 {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Shadow utilities */
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Max height */
+.max-h-\[450px\] {
+  max-height: 450px;
 }

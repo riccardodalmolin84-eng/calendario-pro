@@ -199,10 +199,10 @@ const BookingPage = () => {
                                                 disabled={!isAvailable}
                                                 onClick={() => { setSelectedDate(day); setSelectedSlot(null); }}
                                                 className={`aspect-square relative flex items-center justify-center rounded-lg text-sm transition-all ${isSelected
-                                                        ? 'bg-[#111] text-white shadow-xl font-black z-10'
-                                                        : isAvailable
-                                                            ? 'bg-[#f0f2f5] text-[#111] hover:bg-[#e4e7eb] font-bold'
-                                                            : 'text-[#ddd] cursor-not-allowed'
+                                                    ? 'bg-[#111] text-white shadow-xl font-black z-10'
+                                                    : isAvailable
+                                                        ? 'bg-[#f0f2f5] text-[#111] hover:bg-[#e4e7eb] font-bold'
+                                                        : 'text-[#ddd] cursor-not-allowed'
                                                     } ${!isMonthDay ? 'opacity-0' : ''}`}
                                             >
                                                 {format(day, 'd')}
@@ -222,12 +222,12 @@ const BookingPage = () => {
                                         {selectedDate ? format(selectedDate, 'eee d', { locale: it }) : 'Orari'}
                                     </h3>
                                     <div className="flex bg-[#f0f2f5] p-1 rounded-lg">
-                                        <button onClick={() => setTimeFormat('12h')} className={`px-3 py-1 text-[10px] font-black rounded-md transition-all ${timeFormat === '12h' ? 'bg-white shadow-sm' : 'text-[#888]'}`}>12h</button>
-                                        <button onClick={() => setTimeFormat('24h')} className={`px-3 py-1 text-[10px] font-black rounded-md transition-all ${timeFormat === '24h' ? 'bg-white shadow-sm' : 'text-[#888]'}`}>24 ore</button>
+                                        <button onClick={() => setTimeFormat('12h')} className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${timeFormat === '12h' ? 'bg-white shadow-sm' : 'text-[#888]'}`}>12h</button>
+                                        <button onClick={() => setTimeFormat('24h')} className={`px-3 py-1 text-xs font-black rounded-lg transition-all ${timeFormat === '24h' ? 'bg-white shadow-sm' : 'text-[#888]'}`}>24 ore</button>
                                     </div>
                                 </div>
 
-                                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                                <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3 max-h-[450px]">
                                     {selectedDate ? (
                                         availableSlots.length > 0 ? (
                                             availableSlots.map(slot => (
@@ -235,11 +235,11 @@ const BookingPage = () => {
                                                     key={slot}
                                                     onClick={() => setSelectedSlot(slot)}
                                                     className={`w-full py-4 px-6 rounded-xl border-2 transition-all flex items-center justify-start gap-4 ${selectedSlot === slot
-                                                            ? 'border-black bg-white text-black shadow-lg'
-                                                            : 'border-[#f0f2f5] hover:border-black/10 text-[#222]'
+                                                        ? 'border-black bg-white text-black shadow-lg'
+                                                        : 'border-[#f0f2f5] hover:border-black/10 text-[#222] bg-white'
                                                         }`}
                                                 >
-                                                    <div className={`w-2 h-2 rounded-full ${selectedSlot === slot ? 'bg-[#2ecc71]' : 'bg-[#2ecc71]'}`} />
+                                                    <div className="w-2 h-2 rounded-full bg-[#2ecc71]" />
                                                     <span className="text-sm font-bold">{formatTime(slot)}</span>
                                                 </button>
                                             ))
