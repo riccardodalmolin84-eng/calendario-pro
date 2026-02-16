@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Phone, Mail, Edit, Trash2, Search, Filter, X, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { format, parseISO, isFuture, isPast, isToday } from 'date-fns';
+import { format, parseISO, isFuture, isPast, isToday, addMinutes, startOfDay, isSameDay, parse, isBefore, areIntervalsOverlapping, getDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 const BookingsList = () => {
@@ -23,8 +23,17 @@ const BookingsList = () => {
     });
     const [saving, setSaving] = useState(false);
 
+    // New State for Advanced Editing/Creation
+    const [events, setEvents] = useState([]);
+    const [selectedEventId, setSelectedEventId] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [availableSlots, setAvailableSlots] = useState([]);
+    const [isCreating, setIsCreating] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+
     useEffect(() => {
         fetchBookings();
+        fetchEvents();
     }, []);
 
     useEffect(() => {
@@ -48,6 +57,51 @@ const BookingsList = () => {
         }
     };
 
+
+
+    const fetchEvents = async () => {
+        const { data } = await supabase.from('events').select('*, availabilities(*)');
+        if (data) setEvents(data);
+    };
+
+    const availableSlots = React.useMemo(() => {
+        if (!selectedDate || !selectedEventId || !events) return [];
+        const event = events.find(e => e.id === selectedEventId);
+        if (!event || !event.availabilities) return [];
+
+        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+        const dayName = dayNames[getDay(selectedDate)];
+
+        const availability = event.availabilities;
+        const rules = availability.rules[dayName] || [];
+        const slots = [];
+        const duration = event.duration_minutes;
+
+        // Filter bookings for this day
+        const dayBookings = bookings.filter(b => isSameDay(parseISO(b.start_time), selectedDate) && b.id !== selectedBooking?.id);
+
+        rules.forEach(rule => {
+            let current = parse(rule.start, 'HH:mm', selectedDate);
+            const end = parse(rule.end, 'HH:mm', selectedDate);
+            while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
+                const slotEnd = addMinutes(current, duration);
+                const isOverlapping = dayBookings.some(b => {
+                    const bStart = parseISO(b.start_time);
+                    const bEnd = parseISO(b.end_time);
+                    return areIntervalsOverlapping(
+                        { start: current, end: slotEnd },
+                        { start: bStart, end: bEnd }
+                    );
+                });
+
+                if (!isOverlapping) {
+                    slots.push(format(current, 'HH:mm'));
+                }
+                current = addMinutes(current, duration);
+            }
+        });
+        return slots;
+    }, [selectedDate, selectedEventId, events, bookings, selectedBooking]);
     const applyFilters = () => {
         let filtered = [...bookings];
 
@@ -75,6 +129,9 @@ const BookingsList = () => {
 
     const openEditModal = (booking) => {
         setSelectedBooking(booking);
+        setIsCreating(false);
+        setSelectedEventId(booking.events?.id || booking.event_id);
+        setSelectedDate(parseISO(booking.start_time));
         setEditFormData({
             user_name: booking.user_name,
             user_surname: booking.user_surname,
@@ -83,19 +140,50 @@ const BookingsList = () => {
             start_time: booking.start_time,
             end_time: booking.end_time
         });
-        setShowEditModal(true);
+        setEditingId(booking.id);
+        setShowEditModal(false);
     };
 
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         setSaving(true);
         try {
-            const { error } = await supabase
-                .from('bookings')
-                .update(editFormData)
-                .eq('id', selectedBooking.id);
+            if (isCreating) {
+                // Create New Booking
+                const event = events.find(e => e.id === selectedEventId);
+                const startTime = editFormData.start_time; // Already ISO from slot click
+                const endTime = addMinutes(parseISO(startTime), event.duration_minutes).toISOString();
 
-            if (error) throw error;
+                const { error } = await supabase.from('bookings').insert([{
+                    event_id: selectedEventId,
+                    user_name: editFormData.user_name,
+                    user_surname: editFormData.user_surname,
+                    user_phone: editFormData.user_phone,
+                    user_email: editFormData.user_email,
+                    start_time: startTime,
+                    end_time: endTime
+                }]);
+                if (error) throw error;
+            } else {
+                // Update Existing Booking
+                const event = events.find(e => e.id === selectedEventId);
+                // If start time changed via slot pick, recalc end time
+                const startTime = editFormData.start_time;
+                const endTime = addMinutes(parseISO(startTime), event.duration_minutes).toISOString();
+
+                const { error } = await supabase
+                    .from('bookings')
+                    .update({
+                        ...editFormData,
+                        event_id: selectedEventId,
+                        start_time: startTime,
+                        end_time: endTime
+                    })
+                    .eq('id', selectedBooking.id);
+                if (error) throw error;
+            }
+
+            setEditingId(null);
             setShowEditModal(false);
             fetchBookings();
         } catch (err) {
@@ -127,9 +215,25 @@ const BookingsList = () => {
         <div className="animate-fade-in">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
-                    <h1 className="text-3xl tracking-tight font-bold">Prenotazioni</h1>
-                    <p className="text-text-muted">Gestisci tutte le prenotazioni ricevute</p>
+                    <h1 className="text-3xl tracking-tight font-bold text-primary">Prenotazioni</h1>
+                    <p className="text-text-muted">Gestisci tutti gli appuntamenti</p>
                 </div>
+                <button
+                    onClick={() => {
+                        setIsCreating(true);
+                        setSelectedBooking(null);
+                        setEditFormData({
+                            user_name: '', user_surname: '', user_phone: '', user_email: '', start_time: '', end_time: ''
+                        });
+                        if (events.length > 0) setSelectedEventId(events[0].id);
+                        setSelectedDate(new Date());
+                        setShowEditModal(true);
+                    }}
+                    className="btn btn-primary flex items-center gap-2"
+                >
+                    <Calendar size={20} />
+                    Nuova Prenotazione
+                </button>
                 <div className="flex gap-2">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted" size={18} />
@@ -156,8 +260,8 @@ const BookingsList = () => {
                         key={filter.key}
                         onClick={() => setFilterStatus(filter.key)}
                         className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${filterStatus === filter.key
-                                ? 'bg-primary text-white shadow-lg'
-                                : 'bg-glass-bg text-text-muted hover:bg-glass-bg/80'
+                            ? 'bg-primary text-white shadow-lg'
+                            : 'bg-glass-bg text-text-muted hover:bg-glass-bg/80'
                             }`}
                     >
                         {filter.label}
@@ -236,109 +340,212 @@ const BookingsList = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Inline Edit Form */}
+                            <AnimatePresence>
+                                {editingId === booking.id && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden bg-bg-card border-t border-primary/20 mt-4 pt-6"
+                                    >
+                                        <h3 className="font-bold text-lg mb-4 text-primary">Modifica Prenotazione</h3>
+                                        <form onSubmit={handleSaveEdit} className="space-y-6">
+                                            {/* 1. Event & Date */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="label">Data</label>
+                                                    <input
+                                                        type="date"
+                                                        className="input w-full"
+                                                        value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                                                        onChange={(e) => setSelectedDate(parseISO(e.target.value))}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="label">Nuovo Orario</label>
+                                                    <div className="grid grid-cols-4 gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                                                        {availableSlots.map(slot => {
+                                                            const isSelected = editFormData.start_time && format(parseISO(editFormData.start_time), 'HH:mm') === slot;
+                                                            return (
+                                                                <button
+                                                                    key={slot}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const slotDate = parse(slot, 'HH:mm', selectedDate);
+                                                                        setEditFormData({ ...editFormData, start_time: slotDate.toISOString() });
+                                                                    }}
+                                                                    className={`p-1 text-xs rounded border ${isSelected ? 'bg-primary text-white border-primary' : 'bg-white border-border'}`}
+                                                                >
+                                                                    {slot}
+                                                                </button>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* 2. Details */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <input type="text" className="input" placeholder="Nome" value={editFormData.user_name} onChange={e => setEditFormData({ ...editFormData, user_name: e.target.value })} />
+                                                <input type="text" className="input" placeholder="Cognome" value={editFormData.user_surname} onChange={e => setEditFormData({ ...editFormData, user_surname: e.target.value })} />
+                                                <input type="tel" className="input" placeholder="Tel" value={editFormData.user_phone} onChange={e => setEditFormData({ ...editFormData, user_phone: e.target.value })} />
+                                                <input type="email" className="input" placeholder="Email" value={editFormData.user_email} onChange={e => setEditFormData({ ...editFormData, user_email: e.target.value })} />
+                                            </div>
+
+                                            <div className="flex gap-2 justify-end">
+                                                <button type="button" onClick={() => setEditingId(null)} className="btn btn-outline py-2 px-4 text-xs">Annulla</button>
+                                                <button type="submit" disabled={saving} className="btn btn-primary py-2 px-6 text-xs">{saving ? <Loader2 className="animate-spin" /> : 'Salva'}</button>
+                                            </div>
+                                        </form>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </motion.div>
                     ))}
                 </div>
             )}
 
-            {/* Edit Modal */}
+            {/* Edit/Create Smart Modal */}
             <AnimatePresence>
                 {showEditModal && (
-                    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 100 }}>
+                    <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setShowEditModal(false)}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="card relative z-10 w-full max-w-2xl bg-bg-card border-primary/20"
+                            className="card relative z-10 w-full max-w-4xl bg-bg-card border-primary/20 max-h-[90vh] overflow-y-auto custom-scrollbar"
                         >
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold">Modifica Prenotazione</h2>
-                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-white/5 rounded-full">
+                            <div className="flex justify-between items-center mb-6 sticky top-0 bg-bg-card z-10 py-2 border-b border-border">
+                                <h2 className="text-2xl font-bold text-primary">{isCreating ? 'Nuova Prenotazione' : 'Modifica Prenotazione'}</h2>
+                                <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-black/5 rounded-full transition-colors">
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSaveEdit} className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
+                            <form onSubmit={handleSaveEdit} className="space-y-8 pb-8">
+                                {/* 1. Event & Date Selection */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="label">Nome</label>
-                                        <input
-                                            type="text"
-                                            className="input"
-                                            required
-                                            value={editFormData.user_name}
-                                            onChange={(e) => setEditFormData({ ...editFormData, user_name: e.target.value })}
-                                        />
+                                        <label className="label">Evento</label>
+                                        <select
+                                            className="input w-full"
+                                            value={selectedEventId || ''}
+                                            onChange={(e) => setSelectedEventId(e.target.value)}
+                                            disabled={!isCreating} // Lock event on edit? Or allow change. Allow change is fine but slots update.
+                                        >
+                                            {events.map(ev => (
+                                                <option key={ev.id} value={ev.id}>{ev.title} ({ev.duration_minutes} min)</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <div>
-                                        <label className="label">Cognome</label>
-                                        <input
-                                            type="text"
-                                            className="input"
-                                            required
-                                            value={editFormData.user_surname}
-                                            onChange={(e) => setEditFormData({ ...editFormData, user_surname: e.target.value })}
-                                        />
+                                        <label className="label">Data</label>
+                                        <div className="relative">
+                                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
+                                            <input
+                                                type="date"
+                                                className="input pl-10 w-full"
+                                                value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                                                onChange={(e) => setSelectedDate(parseISO(e.target.value))}
+                                                min={new Date().toISOString().split('T')[0]} // Optional: Prevent past dates?
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
+                                {/* 2. Slot Selection */}
                                 <div>
-                                    <label className="label">Telefono</label>
-                                    <input
-                                        type="tel"
-                                        className="input"
-                                        required
-                                        value={editFormData.user_phone}
-                                        onChange={(e) => setEditFormData({ ...editFormData, user_phone: e.target.value })}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="label">Email (Opzionale)</label>
-                                    <input
-                                        type="email"
-                                        className="input"
-                                        value={editFormData.user_email}
-                                        onChange={(e) => setEditFormData({ ...editFormData, user_email: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="label">Inizio</label>
-                                        <input
-                                            type="datetime-local"
-                                            className="input"
-                                            required
-                                            value={editFormData.start_time ? format(parseISO(editFormData.start_time), "yyyy-MM-dd'T'HH:mm") : ''}
-                                            onChange={(e) => setEditFormData({ ...editFormData, start_time: new Date(e.target.value).toISOString() })}
-                                        />
+                                    <label className="label mb-3 block">Orari Disponibili <span className="text-xs font-normal text-text-muted ml-2">(Verde = Disponibile)</span></label>
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-40 overflow-y-auto p-2 bg-bg-input rounded-xl border border-border">
+                                        {availableSlots.length > 0 ? (
+                                            availableSlots.map(slot => {
+                                                const slotDate = parse(slot, 'HH:mm', selectedDate); // Construct date for value
+                                                const isSelected = editFormData.start_time && isSameDay(parseISO(editFormData.start_time), selectedDate) && format(parseISO(editFormData.start_time), 'HH:mm') === slot;
+                                                return (
+                                                    <button
+                                                        key={slot}
+                                                        type="button"
+                                                        onClick={() => setEditFormData({ ...editFormData, start_time: slotDate.toISOString() })}
+                                                        className={`py-2 px-1 rounded-lg text-xs font-bold transition-all border ${isSelected
+                                                            ? 'bg-primary text-white border-primary shadow-lg scale-105'
+                                                            : 'bg-white text-text-main border-border hover:border-primary/50'}`}
+                                                    >
+                                                        {slot}
+                                                    </button>
+                                                )
+                                            })
+                                        ) : (
+                                            <div className="col-span-full text-center py-8 text-text-muted text-xs uppercase tracking-widest">Nessuna disponibilità</div>
+                                        )}
                                     </div>
-                                    <div>
-                                        <label className="label">Fine</label>
-                                        <input
-                                            type="datetime-local"
-                                            className="input"
-                                            required
-                                            value={editFormData.end_time ? format(parseISO(editFormData.end_time), "yyyy-MM-dd'T'HH:mm") : ''}
-                                            onChange={(e) => setEditFormData({ ...editFormData, end_time: new Date(e.target.value).toISOString() })}
-                                        />
+                                    {editFormData.start_time && (
+                                        <p className="text-xs text-primary font-bold mt-2 text-right">
+                                            📅 Selezionato: {format(parseISO(editFormData.start_time), "d MMMM yyyy 'alle' HH:mm", { locale: it })}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* 3. Customer Details */}
+                                <div className="bg-bg-input p-6 rounded-xl border border-border">
+                                    <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                                        <User size={18} className="text-primary" />
+                                        Dati Cliente
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label">Nome</label>
+                                            <input
+                                                type="text"
+                                                className="input"
+                                                required
+                                                value={editFormData.user_name}
+                                                onChange={(e) => setEditFormData({ ...editFormData, user_name: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label">Cognome</label>
+                                            <input
+                                                type="text"
+                                                className="input"
+                                                required
+                                                value={editFormData.user_surname}
+                                                onChange={(e) => setEditFormData({ ...editFormData, user_surname: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label">Telefono</label>
+                                            <input
+                                                type="tel"
+                                                className="input"
+                                                required
+                                                value={editFormData.user_phone}
+                                                onChange={(e) => setEditFormData({ ...editFormData, user_phone: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label">Email</label>
+                                            <input
+                                                type="email"
+                                                className="input"
+                                                value={editFormData.user_email}
+                                                onChange={(e) => setEditFormData({ ...editFormData, user_email: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
-                                    <button type="submit" disabled={saving} className="btn btn-primary flex-1 py-3 font-bold">
-                                        {saving ? <Loader2 className="animate-spin" size={20} /> : 'Salva Modifiche'}
-                                    </button>
-                                    <button type="button" onClick={() => setShowEditModal(false)} className="btn btn-outline px-6">
-                                        Annulla
+                                <div className="flex gap-3 pt-4 border-t border-border">
+                                    <button type="submit" disabled={saving || !editFormData.start_time} className="btn btn-primary flex-1 py-4 font-bold text-lg">
+                                        {saving ? <Loader2 className="animate-spin" size={24} /> : (isCreating ? 'Crea Prenotazione' : 'Salva Modifiche')}
                                     </button>
                                 </div>
                             </form>

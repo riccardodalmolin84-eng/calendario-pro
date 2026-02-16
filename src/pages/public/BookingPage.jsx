@@ -4,7 +4,7 @@ import { Calendar as CalendarIcon, Clock, MapPin, CheckCircle, ChevronLeft, Chev
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { downloadICSFile } from '../../utils/calendar';
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore, startOfDay, startOfWeek, endOfWeek, isSameMonth } from 'date-fns';
+import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore, startOfDay, startOfWeek, endOfWeek, isSameMonth, areIntervalsOverlapping } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 const BookingPage = () => {
@@ -14,6 +14,7 @@ const BookingPage = () => {
     const [loading, setLoading] = useState(true);
     const [event, setEvent] = useState(null);
     const [availability, setAvailability] = useState(null);
+    const [bookings, setBookings] = useState([]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
@@ -30,6 +31,24 @@ const BookingPage = () => {
     useEffect(() => {
         fetchEvent();
     }, [slug]);
+
+    useEffect(() => {
+        if (event) fetchBookings();
+    }, [event, currentMonth]);
+
+    const fetchBookings = async () => {
+        if (!event) return;
+        const start = startOfMonth(currentMonth).toISOString();
+        const end = endOfMonth(currentMonth).toISOString();
+        const { data } = await supabase
+            .from('bookings')
+            .select('start_time, end_time')
+            .eq('event_id', event.id)
+            .gte('start_time', start)
+            .lte('end_time', end);
+
+        if (data) setBookings(data);
+    };
 
     const fetchEvent = async () => {
         setLoading(true);
@@ -74,12 +93,24 @@ const BookingPage = () => {
             let current = parse(rule.start, 'HH:mm', selectedDate);
             const end = parse(rule.end, 'HH:mm', selectedDate);
             while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
-                slots.push(format(current, 'HH:mm'));
+                const slotEnd = addMinutes(current, duration);
+                const isOverlapping = bookings.some(b => {
+                    const bStart = new Date(b.start_time);
+                    const bEnd = new Date(b.end_time);
+                    return areIntervalsOverlapping(
+                        { start: current, end: slotEnd },
+                        { start: bStart, end: bEnd }
+                    );
+                });
+
+                if (!isOverlapping) {
+                    slots.push(format(current, 'HH:mm'));
+                }
                 current = addMinutes(current, duration);
             }
         });
         return slots;
-    }, [selectedDate, availability, event]);
+    }, [selectedDate, availability, event, bookings]);
 
     const formatTime = (timeStr) => {
         if (timeFormat === '24h') return timeStr;
@@ -286,6 +317,11 @@ const BookingPage = () => {
                                         <input type="email" className="input" placeholder="Email (Opzionale)" value={bookingFormData.email} onChange={(e) => setBookingFormData({ ...bookingFormData, email: e.target.value })} />
                                         <p className="text-xs text-[#888] mt-2 italic">Ti invio un promemoria sul tuo calendario</p>
                                     </div>
+                                    <div className="bg-primary/5 p-4 rounded-xl mb-6 text-center border border-primary/20">
+                                        <p className="text-sm font-medium text-text-main">
+                                            Stai prenotando per <span className="font-bold">{format(selectedDate, 'd MMMM yyyy', { locale: it })}</span> alle <span className="font-bold">{selectedSlot}</span>
+                                        </p>
+                                    </div>
                                     <button type="submit" disabled={submitting} className="btn btn-primary w-full py-5 text-lg uppercase tracking-widest font-black mt-4">
                                         {submitting ? <Loader2 className="animate-spin" size={24} /> : 'Conferma Prenotazione'}
                                     </button>
@@ -302,7 +338,32 @@ const BookingPage = () => {
                             <h2 className="text-5xl font-black mb-4 tracking-tighter uppercase">Successo!</h2>
                             <p className="text-[#111] max-w-md mx-auto mb-12 font-bold text-lg leading-relaxed">Il tuo appuntamento per <b>{event.title}</b> è stato confermato per il {format(selectedDate, 'd MMMM', { locale: it })} alle {selectedSlot}.</p>
 
-                            <div className="flex flex-col md:flex-row gap-4 w-full max-w-md justify-center">
+                            <div className="flex flex-col gap-3 w-full max-w-md justify-center mt-6">
+                                <p className="text-xs font-bold uppercase tracking-widest text-[#888] mb-2">Aggiungi al calendario</p>
+
+                                {/* Google Calendar */}
+                                <a
+                                    href={`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${format(selectedDate, 'yyyyMMdd') + 'T' + selectedSlot.replace(':', '') + '00'}/${format(selectedDate, 'yyyyMMdd') + 'T' + format(addMinutes(parse(selectedSlot, 'HH:mm', selectedDate), event.duration_minutes), 'HHmm') + '00'}&details=${encodeURIComponent('Appuntamento con Aloe di Elisabetta')}&location=${encodeURIComponent(event.location || '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn btn-outline py-4 text-sm font-bold flex items-center justify-center gap-3 border-[#eee] hover:border-black transition-all"
+                                >
+                                    <span className="text-lg">📅</span>
+                                    Google Calendar
+                                </a>
+
+                                {/* Outlook Calendar */}
+                                <a
+                                    href={`https://outlook.live.com/calendar/0/deeplink/compose?path=/calendar/action/compose&rru=addevent&startdt=${format(parse(selectedSlot, 'HH:mm', selectedDate), "yyyy-MM-dd'T'HH:mm:ss")}&enddt=${format(addMinutes(parse(selectedSlot, 'HH:mm', selectedDate), event.duration_minutes), "yyyy-MM-dd'T'HH:mm:ss")}&subject=${encodeURIComponent(event.title)}&body=${encodeURIComponent('Appuntamento con Aloe di Elisabetta')}&location=${encodeURIComponent(event.location || '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="btn btn-outline py-4 text-sm font-bold flex items-center justify-center gap-3 border-[#eee] hover:border-[#0078d4] hover:text-[#0078d4] transition-all"
+                                >
+                                    <span className="text-lg">📧</span>
+                                    Outlook
+                                </a>
+
+                                {/* iCal / iOS */}
                                 <button
                                     onClick={() => {
                                         const [hours, minutes] = selectedSlot.split(':');
@@ -319,12 +380,13 @@ const BookingPage = () => {
                                             location: event.location
                                         });
                                     }}
-                                    className="btn btn-outline px-8 py-5 text-lg uppercase tracking-widest font-bold flex items-center justify-center gap-3 hover:bg-black hover:text-white transition-all border-2 border-black"
+                                    className="btn btn-outline py-4 text-sm font-bold flex items-center justify-center gap-3 border-[#eee] hover:border-black transition-all"
                                 >
-                                    <CalendarIcon size={20} />
-                                    Aggiungi al Calendario
+                                    <span className="text-lg">🍏</span>
+                                    Apple / iCal
                                 </button>
-                                <button onClick={() => window.location.reload()} className="btn btn-primary px-12 py-5 text-lg uppercase tracking-widest font-black">Fine</button>
+
+                                <button onClick={() => window.location.reload()} className="btn btn-primary py-4 mt-4 text-lg uppercase tracking-widest font-black">Fine</button>
                             </div>
                         </motion.div>
                     )}
