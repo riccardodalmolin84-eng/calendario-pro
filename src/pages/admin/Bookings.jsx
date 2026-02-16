@@ -27,7 +27,6 @@ const BookingsList = () => {
     const [events, setEvents] = useState([]);
     const [selectedEventId, setSelectedEventId] = useState(null);
     const [selectedDate, setSelectedDate] = useState(null);
-    const [availableSlots, setAvailableSlots] = useState([]);
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
 
