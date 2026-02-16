@@ -498,7 +498,7 @@ const EventsList = () => {
 
                     {(formData.event_type === 'single_week' || (formData.event_type === 'recurring' && formData.start_date)) && (
                         <div>
-                            <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Settimana Specificata' : 'Data di inizio'}</label>
+                            <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Settimana Specificata' : 'Data di Inizio / Attivazione'}</label>
                             <WeekPicker
                                 selectedDate={formData.start_date ? new Date(formData.start_date) : null}
                                 onChange={(date) => setFormData({ ...formData, start_date: date })}
