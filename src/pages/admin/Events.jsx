@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
