@@ -9,50 +9,65 @@ const WeekPicker = ({ selectedDate, onChange }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const firstDayOfMonth = startOfMonth(currentMonth);
     const lastDayOfMonth = endOfMonth(currentMonth);
-    const days = eachDayOfInterval({ start: startOfMonth(firstDayOfMonth), end: endOfMonth(lastDayOfMonth) });
+    const days = eachDayOfInterval({ start: startOfWeek(firstDayOfMonth, { weekStartsOn: 1 }), end: endOfWeek(lastDayOfMonth, { weekStartsOn: 1 }) });
 
     const weekStart = selectedDate ? startOfWeek(selectedDate, { weekStartsOn: 1 }) : null;
     const weekEnd = selectedDate ? endOfWeek(selectedDate, { weekStartsOn: 1 }) : null;
 
     return (
-        <div className="bg-bg-input border border-glass-border rounded-xl p-4">
-            <div className="flex justify-between items-center mb-4">
-                <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-glass-bg rounded">
-                    <ChevronLeft size={16} />
-                </button>
-                <span className="text-xs font-bold uppercase tracking-widest">{format(currentMonth, 'MMMM yyyy', { locale: it })}</span>
-                <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-glass-bg rounded">
-                    <ChevronRight size={16} />
-                </button>
+        <div className="bg-black/20 border border-white/5 rounded-2xl p-5 backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-6">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/80">Selezione Settimana</h3>
+                <div className="flex items-center gap-4">
+                    <span className="text-xs font-bold text-text-main">{format(currentMonth, 'MMMM yyyy', { locale: it })}</span>
+                    <div className="flex gap-1">
+                        <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors">
+                            <ChevronLeft size={14} />
+                        </button>
+                        <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1.5 hover:bg-white/5 rounded-lg border border-white/10 transition-colors">
+                            <ChevronRight size={14} />
+                        </button>
+                    </div>
+                </div>
             </div>
-            <div className="grid grid-cols-7 gap-1 mb-1">
+            <div className="grid grid-cols-7 gap-1 mb-2">
                 {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((d, i) => (
-                    <div key={i} className="text-[10px] text-center font-bold text-text-muted">{d}</div>
+                    <div key={i} className="text-[9px] text-center font-black text-text-muted/40 uppercase">{d}</div>
                 ))}
             </div>
-            <div className="grid grid-cols-7 gap-1 text-[11px]">
+            <div className="grid grid-cols-7 gap-1.5">
                 {days.map((day, i) => {
                     const isInSelectedWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
                     const isOutsideMonth = !isSameMonth(day, currentMonth);
+                    const isToday = isSameDay(day, new Date());
+
                     return (
                         <button
                             key={i}
                             type="button"
                             onClick={() => onChange(day)}
-                            className={`aspect-square flex items-center justify-center rounded-lg transition-colors
-                                ${isInSelectedWeek ? 'bg-primary text-white font-bold' : 'hover:bg-primary/20'}
-                                ${isOutsideMonth ? 'opacity-20' : ''}
+                            className={`aspect-square flex items-center justify-center rounded-xl text-[11px] transition-all duration-300 relative group
+                                ${isInSelectedWeek
+                                    ? 'bg-primary text-white font-bold shadow-lg shadow-primary/20'
+                                    : 'hover:bg-white/10 text-text-muted hover:text-text-main'}
+                                ${isOutsideMonth ? 'opacity-10' : ''}
+                                ${isToday && !isInSelectedWeek ? 'border border-primary/30' : ''}
                             `}
                         >
                             {format(day, 'd')}
+                            {isInSelectedWeek && i % 7 === 0 && (
+                                <motion.div layoutId="week-glow" className="absolute inset-0 bg-primary/20 blur-xl -z-10" />
+                            )}
                         </button>
                     );
                 })}
             </div>
             {weekStart && (
-                <div className="mt-3 py-2 px-3 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary flex items-center justify-center gap-2">
-                    <Calendar size={12} />
-                    Settimana dal {format(weekStart, 'd MMMM', { locale: it })} al {format(weekEnd, 'd MMMM', { locale: it })}
+                <div className="mt-6 p-3 bg-primary/5 rounded-xl border border-primary/10 flex items-center justify-center gap-3">
+                    <Calendar size={14} className="text-primary" />
+                    <div className="text-[10px] font-bold text-text-main uppercase tracking-wider">
+                        Dal {format(weekStart, 'd MMMM')} al {format(weekEnd, 'd MMMM')}
+                    </div>
                 </div>
             )}
         </div>
