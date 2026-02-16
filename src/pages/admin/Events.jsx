@@ -112,7 +112,7 @@ const WeekPicker = ({ selectedDate, onChange }) => {
     );
 };
 
-const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopyAll }) => {
+const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove }) => {
     const isEnabled = rules && rules.length > 0;
 
     return (
@@ -127,23 +127,23 @@ const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopyAll
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
 
-                <span className={`w-28 font-semibold text-sm ${isEnabled ? 'text-text-main' : 'text-text-muted opacity-50'}`}>{day}</span>
+                <span className={`w-24 font-bold text-xs uppercase tracking-tight ${isEnabled ? 'text-text-main' : 'text-text-muted opacity-30'}`}>{day}</span>
 
                 {isEnabled ? (
                     <div className="flex-1 flex flex-col gap-2">
                         {rules.map((rule, idx) => (
                             <div key={idx} className="flex items-center gap-2 group/row">
-                                <div className="flex items-center gap-2 bg-bg-input border border-glass-border p-1.5 rounded-xl shadow-inner">
+                                <div className="flex items-center gap-2 bg-bg-input border border-border/50 px-2 py-1 rounded-lg shadow-inner">
                                     <input
                                         type="time"
-                                        className="bg-transparent border-none outline-none text-xs text-text-main font-bold cursor-pointer"
+                                        className="bg-transparent border-none outline-none text-[11px] text-text-main font-bold cursor-pointer"
                                         value={rule.start}
                                         onChange={(e) => onUpdate(day, idx, 'start', e.target.value)}
                                     />
-                                    <span className="text-text-muted text-[10px] opacity-30">-</span>
+                                    <span className="text-text-muted text-[10px] opacity-20">-</span>
                                     <input
                                         type="time"
-                                        className="bg-transparent border-none outline-none text-xs text-text-main font-bold cursor-pointer"
+                                        className="bg-transparent border-none outline-none text-[11px] text-text-main font-bold cursor-pointer"
                                         value={rule.end}
                                         onChange={(e) => onUpdate(day, idx, 'end', e.target.value)}
                                     />
@@ -158,24 +158,14 @@ const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopyAll
                                 </button>
 
                                 {idx === rules.length - 1 && (
-                                    <div className="flex items-center gap-2 ml-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => onAdd(day)}
-                                            className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-primary transition-colors"
-                                            title="Aggiungi intervallo"
-                                        >
-                                            <Plus size={14} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onCopyAll(day)}
-                                            className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-text-muted hover:text-primary transition-colors"
-                                            title="Copia a tutti i giorni"
-                                        >
-                                            <Copy size={14} />
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => onAdd(day)}
+                                        className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors ml-auto"
+                                        title="Aggiungi fascia oraria"
+                                    >
+                                        <Plus size={14} />
+                                    </button>
                                 )}
                             </div>
                         ))}
@@ -479,7 +469,6 @@ const EventsList = () => {
                                     onUpdate={updateDayRule}
                                     onAdd={addDayRule}
                                     onRemove={removeDayRule}
-                                    onCopyAll={copyToAll}
                                 />
                             ))}
                         </div>
