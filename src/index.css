@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
+  color-scheme: dark;
   --font-family: 'Outfit', sans-serif;
 
   /* Modern Color Palette */
@@ -314,7 +315,8 @@ a:hover {
   color: var(--text-main);
   font-family: inherit;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background-color 0.2s;
+  color-scheme: dark;
 }
 
 .input:focus {

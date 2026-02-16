@@ -143,14 +143,14 @@ const AvailabilitiesList = () => {
                                             <div key={index} className="flex items-center gap-2 bg-glass-bg border border-glass-border px-3 py-1.5 rounded-lg text-sm">
                                                 <input
                                                     type="time"
-                                                    className="bg-transparent border-none outline-none text-text-main"
+                                                    className="bg-bg-input border border-glass-border rounded px-1 text-text-main"
                                                     value={slot.start}
                                                     onChange={(e) => updateSlot(avail.id, day, index, 'start', e.target.value)}
                                                 />
                                                 <span>-</span>
                                                 <input
                                                     type="time"
-                                                    className="bg-transparent border-none outline-none text-text-main"
+                                                    className="bg-bg-input border border-glass-border rounded px-1 text-text-main"
                                                     value={slot.end}
                                                     onChange={(e) => updateSlot(avail.id, day, index, 'end', e.target.value)}
                                                 />
