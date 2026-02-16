@@ -96,6 +96,43 @@ const AvailabilitiesList = () => {
         }));
     };
 
+    const createAvailability = async () => {
+        setSaving(true);
+        const newAvail = {
+            title: 'Nuova Disponibilità',
+            rules: {
+                'Lunedì': [{ start: '09:00', end: '17:00' }],
+                'Martedì': [{ start: '09:00', end: '17:00' }],
+                'Mercoledì': [{ start: '09:00', end: '17:00' }],
+                'Giovedì': [{ start: '09:00', end: '17:00' }],
+                'Venerdì': [{ start: '09:00', end: '17:00' }],
+                'Sabato': [],
+                'Domenica': []
+            }
+        };
+
+        const { error } = await supabase.from('availabilities').insert([newAvail]);
+        if (!error) {
+            fetchAvailabilities();
+        } else {
+            alert('Errore: ' + error.message);
+        }
+        setSaving(false);
+    };
+
+    const deleteAvailability = async (id) => {
+        if (!window.confirm('Sei sicuro di voler eliminare questa disponibilità?')) return;
+
+        setSaving(true);
+        const { error } = await supabase.from('availabilities').delete().eq('id', id);
+        if (!error) {
+            fetchAvailabilities();
+        } else {
+            alert('Errore: ' + error.message);
+        }
+        setSaving(false);
+    };
+
     if (loading) return (
         <div className="flex items-center justify-center p-20">
             <Loader2 className="animate-spin text-primary" size={48} />
@@ -109,7 +146,13 @@ const AvailabilitiesList = () => {
                     <h1 className="text-3xl">Disponibilità</h1>
                     <p className="text-text-muted">Definisci le tue regole di orario da utilizzare per gli eventi.</p>
                 </div>
-                {/* For now, we support editing the primary one */}
+                <button
+                    onClick={createAvailability}
+                    disabled={saving}
+                    className="btn btn-primary gap-2"
+                >
+                    <Plus size={20} /> Nuova Disponibilità
+                </button>
             </header>
 
             <div className="flex flex-col gap-6">
@@ -131,6 +174,15 @@ const AvailabilitiesList = () => {
                                     {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                                     Salva Modifiche
                                 </button>
+                                {avail.id !== 'new' && (
+                                    <button
+                                        onClick={() => deleteAvailability(avail.id)}
+                                        className="btn btn-outline border-error text-error hover:bg-error/10 py-2 text-xs px-3"
+                                        title="Elimina"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
