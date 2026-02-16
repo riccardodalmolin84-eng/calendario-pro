@@ -6,7 +6,7 @@ import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMon
 import { it } from 'date-fns/locale';
 import ManualBookingModal from '../../components/ManualBookingModal';
 
-const WeekPicker = ({ selectedDate, onChange }) => {
+const WeekPicker = ({ selectedDate, onChange, eventType }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const firstDayOfMonth = startOfMonth(currentMonth);
     const lastDayOfMonth = endOfMonth(currentMonth);
@@ -57,11 +57,11 @@ const WeekPicker = ({ selectedDate, onChange }) => {
                 {/* Days Grid */}
                 <div className="grid grid-cols-7 gap-px bg-white/5 border border-white/5 rounded-xl overflow-hidden shadow-inner">
                     {days.map((day, i) => {
-                        const isInRollingWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
+                        const isInRollingWeek = eventType === 'single_week' && weekStart && weekEnd && day >= weekStart && day <= weekEnd;
                         const isOutsideMonth = !isSameMonth(day, currentMonth);
                         const isToday = isSameDay(day, new Date());
                         const isStartDay = weekStart && isSameDay(day, weekStart);
-                        const isEndDay = weekEnd && isSameDay(day, weekEnd);
+                        const isEndDay = eventType === 'single_week' && weekEnd && isSameDay(day, weekEnd);
 
                         return (
                             <button
@@ -91,19 +91,28 @@ const WeekPicker = ({ selectedDate, onChange }) => {
             <div className="bg-white/5 p-4 border-t border-white/5 flex flex-col gap-2">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Calendar size={16} className="text-primary" />
+                        {eventType === 'single_week' ? <Calendar size={16} className="text-primary" /> : <Clock size={16} className="text-primary" />}
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-[10px] text-text-muted uppercase font-bold tracking-widest leading-none">Inizio Settimana</span>
+                        <span className="text-[10px] text-text-muted uppercase font-bold tracking-widest leading-none">
+                            {eventType === 'single_week' ? 'Inizio Settimana' : 'Attivazione Evento'}
+                        </span>
                         <span className="text-xs font-bold text-text-main">
                             {weekStart ? format(weekStart, 'EEEE d MMMM', { locale: it }) : 'Nessuna data selezionata'}
                         </span>
                     </div>
                 </div>
-                {weekStart && (
+                {weekStart && eventType === 'single_week' && (
                     <div className="flex items-center gap-2 mt-1">
                         <div className="h-px flex-1 bg-white/5" />
                         <span className="text-[9px] font-black text-primary/60 uppercase">Durerà fino al {format(weekEnd, 'd MMMM')}</span>
+                        <div className="h-px flex-1 bg-white/5" />
+                    </div>
+                )}
+                {weekStart && eventType !== 'single_week' && (
+                    <div className="flex items-center gap-2 mt-1">
+                        <div className="h-px flex-1 bg-white/5" />
+                        <span className="text-[9px] font-black text-primary/60 uppercase">Attivo senza scadenza</span>
                         <div className="h-px flex-1 bg-white/5" />
                     </div>
                 )}
@@ -429,11 +438,24 @@ const EventsList = () => {
                                     key={type}
                                     type="button"
                                     onClick={() => {
-                                        const newType = type === 'recurring_from' ? 'recurring' : type;
+                                        let newType;
+                                        let newStartDate;
+
+                                        if (type === 'recurring') {
+                                            newType = 'recurring';
+                                            newStartDate = null;
+                                        } else if (type === 'recurring_from') {
+                                            newType = 'recurring';
+                                            newStartDate = formData.start_date || new Date();
+                                        } else {
+                                            newType = 'single_week';
+                                            newStartDate = formData.start_date || new Date();
+                                        }
+
                                         setFormData({
                                             ...formData,
                                             event_type: newType,
-                                            start_date: type === 'recurring' && !formData.start_date ? null : (formData.start_date || new Date())
+                                            start_date: newStartDate
                                         });
                                     }}
                                     className={`py-2 px-1 text-[10px] uppercase font-bold border-2 rounded-lg transition-all
@@ -480,6 +502,7 @@ const EventsList = () => {
                             <WeekPicker
                                 selectedDate={formData.start_date ? new Date(formData.start_date) : null}
                                 onChange={(date) => setFormData({ ...formData, start_date: date })}
+                                eventType={formData.event_type}
                             />
                         </div>
                     )}
