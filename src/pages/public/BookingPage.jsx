@@ -235,7 +235,7 @@ const BookingPage = () => {
                                                     key={slot}
                                                     onClick={() => setSelectedSlot(slot)}
                                                     className={`w-full py-4 px-6 rounded-xl border-2 transition-all flex items-center justify-start gap-4 ${selectedSlot === slot
-                                                        ? 'border-black bg-white text-black shadow-lg'
+                                                        ? 'border-black bg-white text-black shadow-lg font-bold'
                                                         : 'border-[#f0f2f5] hover:border-black/10 text-[#222] bg-white'
                                                         }`}
                                                 >
@@ -281,7 +281,10 @@ const BookingPage = () => {
                                         <input type="text" className="input" required placeholder="Cognome" value={bookingFormData.surname} onChange={(e) => setBookingFormData({ ...bookingFormData, surname: e.target.value })} />
                                     </div>
                                     <input type="tel" className="input" required placeholder="Cellulare" value={bookingFormData.phone} onChange={(e) => setBookingFormData({ ...bookingFormData, phone: e.target.value })} />
-                                    <input type="email" className="input" placeholder="Email (Opzionale)" value={bookingFormData.email} onChange={(e) => setBookingFormData({ ...bookingFormData, email: e.target.value })} />
+                                    <div>
+                                        <input type="email" className="input" placeholder="Email (Opzionale)" value={bookingFormData.email} onChange={(e) => setBookingFormData({ ...bookingFormData, email: e.target.value })} />
+                                        <p className="text-xs text-[#888] mt-2 italic">Ti invio un promemoria sul tuo calendario</p>
+                                    </div>
                                     <button type="submit" disabled={submitting} className="btn btn-primary w-full py-5 text-lg uppercase tracking-widest font-black mt-4">
                                         {submitting ? <Loader2 className="animate-spin" size={24} /> : 'Conferma Prenotazione'}
                                     </button>
