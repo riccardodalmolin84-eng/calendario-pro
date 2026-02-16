@@ -1,19 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
-  --bg-main: #0f172a;
-  --bg-card: rgba(30, 41, 59, 0.7);
-  --bg-input: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border: rgba(148, 163, 184, 0.1);
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
-  --glass-bg: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* Olive Green & Pastel Brown Theme */
+  --primary: #606c38;
+  /* Olive Green */
+  --primary-hover: #283618;
+  /* Darker Olive */
+
+  --bg-main: #fefae0;
+  /* Light Pastel Yellow/Beige */
+  --bg-card: #ffffff;
+  /* White cards for contrast */
+  --bg-input: #fdfcf5;
+
+  --text-main: #283618;
+  /* Dark Olive/Brown text */
+  --text-muted: #bc6c25;
+  /* Earthy orange/brown for muted text */
+
+  --border: rgba(96, 108, 56, 0.2);
+  /* Olive border */
+
+  --success: #606c38;
+  --error: #d62828;
+  --warning: #dda15e;
+
+  --glass-bg: rgba(254, 250, 224, 0.8);
+  --glass-border: rgba(96, 108, 56, 0.1);
 }
 
 * {
