@@ -1,10 +1,10 @@
--- Database Schema for Appointment Pro
--- Run this in your Supabase SQL Editor
+-- Database Schema per CalendarioAloe
+-- Incolla questo codice nel SQL Editor di Supabase e clicca su "Run"
 
--- Enable UUID extension
+-- 1. Abilita l'estensione per i UUID
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Admin profile
+-- 2. Tabella Profili Admin
 CREATE TABLE IF NOT EXISTS admin_profiles (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
@@ -13,16 +13,15 @@ CREATE TABLE IF NOT EXISTS admin_profiles (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Availabilities (Rules for when someone is free)
+-- 3. Tabella Disponibilità (Regole orarie)
 CREATE TABLE IF NOT EXISTS availabilities (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
-  -- Weekly rules: { "monday": [{"start": "09:00", "end": "12:00"}], ... }
   rules JSONB NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Events (The actual service/appointment type)
+-- 4. Tabella Eventi (Servizi/Prestazioni)
 CREATE TABLE IF NOT EXISTS events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   availability_id UUID REFERENCES availabilities(id) ON DELETE CASCADE,
@@ -31,13 +30,13 @@ CREATE TABLE IF NOT EXISTS events (
   slug TEXT UNIQUE NOT NULL,
   duration_minutes INTEGER NOT NULL DEFAULT 30,
   location TEXT,
-  event_type TEXT CHECK (event_type IN ('single', 'weekly', 'recurring')),
-  specific_date DATE, -- For 'single' event type
+  event_type TEXT CHECK (event_type IN ('single', 'weekly', 'recurring')) DEFAULT 'recurring',
+  specific_date DATE,
   allow_multi_slots BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Bookings
+-- 5. Tabella Prenotazioni
 CREATE TABLE IF NOT EXISTS bookings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
@@ -50,5 +49,25 @@ CREATE TABLE IF NOT EXISTS bookings (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert a default admin profile (user should update this)
--- INSERT INTO admin_profiles (email, phone) VALUES ('admin@example.com', '+123456789');
+-- 6. CONFIGURAZIONE SICUREZZA (RLS)
+-- Abilitiamo la sicurezza per le tabelle
+ALTER TABLE availabilities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_profiles ENABLE ROW LEVEL SECURITY;
+
+-- 7. CREAZIONE POLICY (Permessi di accesso)
+-- NOTA: In una versione di produzione reale, qui useresti l'autenticazione.
+-- Per ora, abilitiamo l'accesso pubblico per permettere all'app di funzionare.
+
+-- Policies per Disponibilità
+CREATE POLICY "Accesso pubblico Availabilities" ON availabilities FOR ALL USING (true) WITH CHECK (true);
+
+-- Policies per Eventi
+CREATE POLICY "Accesso pubblico Events" ON events FOR ALL USING (true) WITH CHECK (true);
+
+-- Policies per Prenotazioni
+CREATE POLICY "Accesso pubblico Bookings" ON bookings FOR ALL USING (true) WITH CHECK (true);
+
+-- Policies per Profili
+CREATE POLICY "Accesso pubblico Profiles" ON admin_profiles FOR ALL USING (true) WITH CHECK (true);
