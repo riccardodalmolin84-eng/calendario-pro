@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS events (
   slug TEXT UNIQUE NOT NULL,
   duration_minutes INTEGER NOT NULL DEFAULT 30,
   location TEXT,
-  event_type TEXT CHECK (event_type IN ('single', 'weekly', 'recurring')) DEFAULT 'recurring',
+  event_type TEXT CHECK (event_type IN ('single', 'single_week', 'recurring')) DEFAULT 'recurring',
+  start_date DATE,
   specific_date DATE,
   allow_multi_slots BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

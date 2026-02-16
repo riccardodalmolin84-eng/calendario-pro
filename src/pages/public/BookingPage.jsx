@@ -7,7 +7,8 @@ import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, i
 import { it } from 'date-fns/locale';
 
 const BookingPage = () => {
-    const { slug } = useParams();
+    const { slug: rawSlug } = useParams();
+    const slug = rawSlug?.trim().replace(/\/$/, '');
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(true);
     const [event, setEvent] = useState(null);
@@ -30,17 +31,37 @@ const BookingPage = () => {
 
     const fetchEvent = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('events')
-            .select('*, availabilities(*)')
-            .eq('slug', slug)
-            .single();
+        try {
+            console.log('Fetching event with slug:', slug);
+            const { data, error } = await supabase
+                .from('events')
+                .select('*, availabilities(*)')
+                .eq('slug', slug)
+                .single();
 
-        if (data) {
-            setEvent(data);
-            setAvailability(data.availabilities);
+            if (error) {
+                console.error('Supabase error fetching event:', error);
+                setEvent(null);
+            } else if (data) {
+                console.log('Event found:', data);
+                setEvent(data);
+                setAvailability(data.availabilities);
+
+                // If it's a single week event, set the current month to the week's month
+                if (data.event_type === 'single_week' && data.start_date) {
+                    setCurrentMonth(new Date(data.start_date));
+                    setSelectedDate(new Date(data.start_date));
+                }
+            } else {
+                console.warn('No event found for slug:', slug);
+                setEvent(null);
+            }
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            setEvent(null);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const calendarDays = useMemo(() => {
@@ -196,7 +217,26 @@ const BookingPage = () => {
                                                 ))}
 
                                                 {calendarDays.map(day => {
-                                                    const isPast = isBefore(day, startOfToday());
+                                                    const today = startOfToday();
+                                                    let isPast = isBefore(day, today);
+
+                                                    // Rule: Don't show days before start_date if recurring with start date
+                                                    if (event.event_type === 'recurring' && event.start_date) {
+                                                        const startDate = new Date(event.start_date);
+                                                        if (isBefore(day, startDate) && !isSameDay(day, startDate)) {
+                                                            isPast = true;
+                                                        }
+                                                    }
+
+                                                    // Rule: Only show days within the specific week if single_week
+                                                    if (event.event_type === 'single_week' && event.start_date) {
+                                                        const weekStart = startOfWeek(new Date(event.start_date), { weekStartsOn: 1 });
+                                                        const weekEnd = endOfWeek(new Date(event.start_date), { weekStartsOn: 1 });
+                                                        if (day < weekStart || day > weekEnd) {
+                                                            isPast = true;
+                                                        }
+                                                    }
+
                                                     const isSelected = selectedDate && isSameDay(day, selectedDate);
 
                                                     return (
@@ -208,10 +248,10 @@ const BookingPage = () => {
                                                                 setSelectedSlot(null);
                                                             }}
                                                             className={`aspect-square flex items-center justify-center rounded-xl text-sm font-bold transition-all relative ${isSelected
-                                                                    ? 'bg-primary text-white shadow-xl shadow-primary/30 z-10'
-                                                                    : isPast
-                                                                        ? 'opacity-20 cursor-not-allowed'
-                                                                        : 'hover:bg-primary/10 text-text-muted hover:text-primary'
+                                                                ? 'bg-primary text-white shadow-xl shadow-primary/30 z-10'
+                                                                : isPast
+                                                                    ? 'opacity-20 cursor-not-allowed'
+                                                                    : 'hover:bg-primary/10 text-text-muted hover:text-primary'
                                                                 }`}
                                                         >
                                                             {format(day, 'd')}
@@ -241,8 +281,8 @@ const BookingPage = () => {
                                                                 key={slot}
                                                                 onClick={() => setSelectedSlot(slot)}
                                                                 className={`w-full py-4 px-4 rounded-xl border-2 transition-all text-sm font-bold text-center ${selectedSlot === slot
-                                                                        ? 'bg-primary/10 border-primary text-primary'
-                                                                        : 'bg-glass-bg border-glass-border hover:border-primary/40 text-text-main'
+                                                                    ? 'bg-primary/10 border-primary text-primary'
+                                                                    : 'bg-glass-bg border-glass-border hover:border-primary/40 text-text-main'
                                                                     }`}
                                                             >
                                                                 {slot}

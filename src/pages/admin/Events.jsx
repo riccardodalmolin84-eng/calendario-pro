@@ -1,7 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock, Loader2, ExternalLink, MapPin } from 'lucide-react';
+import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock, Loader2, ExternalLink, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, startOfMonth, endOfMonth, getDay, addDays, isBefore, startOfToday } from 'date-fns';
+import { it } from 'date-fns/locale';
+
+const WeekPicker = ({ selectedDate, onChange }) => {
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const firstDayOfMonth = startOfMonth(currentMonth);
+    const lastDayOfMonth = endOfMonth(currentMonth);
+    const days = eachDayOfInterval({ start: startOfMonth(firstDayOfMonth), end: endOfMonth(lastDayOfMonth) });
+
+    const weekStart = selectedDate ? startOfWeek(selectedDate, { weekStartsOn: 1 }) : null;
+    const weekEnd = selectedDate ? endOfWeek(selectedDate, { weekStartsOn: 1 }) : null;
+
+    return (
+        <div className="bg-bg-input border border-glass-border rounded-xl p-4">
+            <div className="flex justify-between items-center mb-4">
+                <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-glass-bg rounded">
+                    <ChevronLeft size={16} />
+                </button>
+                <span className="text-xs font-bold uppercase tracking-widest">{format(currentMonth, 'MMMM yyyy', { locale: it })}</span>
+                <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-glass-bg rounded">
+                    <ChevronRight size={16} />
+                </button>
+            </div>
+            <div className="grid grid-cols-7 gap-1 mb-1">
+                {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map((d, i) => (
+                    <div key={i} className="text-[10px] text-center font-bold text-text-muted">{d}</div>
+                ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-[11px]">
+                {days.map((day, i) => {
+                    const isInSelectedWeek = weekStart && weekEnd && day >= weekStart && day <= weekEnd;
+                    const isOutsideMonth = !isSameMonth(day, currentMonth);
+                    return (
+                        <button
+                            key={i}
+                            type="button"
+                            onClick={() => onChange(day)}
+                            className={`aspect-square flex items-center justify-center rounded-lg transition-colors
+                                ${isInSelectedWeek ? 'bg-primary text-white font-bold' : 'hover:bg-primary/20'}
+                                ${isOutsideMonth ? 'opacity-20' : ''}
+                            `}
+                        >
+                            {format(day, 'd')}
+                        </button>
+                    );
+                })}
+            </div>
+            {weekStart && (
+                <div className="mt-3 py-2 px-3 bg-primary/10 rounded-lg border border-primary/20 text-[10px] font-bold text-primary flex items-center justify-center gap-2">
+                    <Calendar size={12} />
+                    Settimana dal {format(weekStart, 'd MMMM', { locale: it })} al {format(weekEnd, 'd MMMM', { locale: it })}
+                </div>
+            )}
+        </div>
+    );
+};
 
 const EventsList = () => {
     const [events, setEvents] = useState([]);
@@ -18,7 +74,8 @@ const EventsList = () => {
         slug: '',
         availability_id: '',
         event_type: 'recurring',
-        location: ''
+        location: '',
+        start_date: null
     };
 
     // Form State
@@ -61,18 +118,25 @@ const EventsList = () => {
         e.preventDefault();
         setSaving(true);
 
+        // Map UI 'recurring' with start_date to 'recurring' but with start_date value
+        // single_week is the other one
+        const dataToSave = { ...formData };
+        if (dataToSave.event_type === 'recurring' && !dataToSave.start_date) {
+            dataToSave.start_date = null;
+        }
+
         try {
             if (editingEventId) {
                 const { error } = await supabase
                     .from('events')
-                    .update(formData)
+                    .update(dataToSave)
                     .eq('id', editingEventId);
 
                 if (error) throw error;
             } else {
                 const { error } = await supabase
                     .from('events')
-                    .insert([formData]);
+                    .insert([dataToSave]);
 
                 if (error) throw error;
             }
@@ -97,7 +161,8 @@ const EventsList = () => {
             slug: event.slug || '',
             availability_id: event.availability_id || '',
             event_type: event.event_type || 'recurring',
-            location: event.location || ''
+            location: event.location || '',
+            start_date: event.start_date ? new Date(event.start_date) : null
         });
         setShowModal(true);
     };
@@ -113,23 +178,9 @@ const EventsList = () => {
 
     const handleDelete = async (id) => {
         if (!window.confirm('Sei sicuro di voler eliminare questo evento?')) return;
-
-        const { error } = await supabase
-            .from('events')
-            .delete()
-            .eq('id', id);
-
-        if (!error) {
-            fetchData();
-        } else {
-            alert('Errore: ' + error.message);
-        }
-    };
-
-    const copyToClipboard = (slug) => {
-        const url = `${window.location.origin}/book/${slug}`;
-        navigator.clipboard.writeText(url);
-        alert('Link copiato!');
+        const { error } = await supabase.from('events').delete().eq('id', id);
+        if (!error) fetchData();
+        else alert('Errore: ' + error.message);
     };
 
     return (
@@ -137,12 +188,9 @@ const EventsList = () => {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>
                     <h1 className="text-3xl tracking-tight">I tuoi Eventi</h1>
-                    <p className="text-text-muted">Gestisci i tipi di appuntamento e condividi i tuoi link di prenotazione.</p>
+                    <p className="text-text-muted">Gestisci i tipi di appuntamento e la loro ricorrenza temporale.</p>
                 </div>
-                <button
-                    onClick={openCreateModal}
-                    className="btn btn-primary gap-2 shadow-lg shadow-primary/20"
-                >
+                <button onClick={openCreateModal} className="btn btn-primary gap-2 shadow-lg shadow-primary/20">
                     <Plus size={20} /> Crea Nuovo Evento
                 </button>
             </header>
@@ -155,84 +203,33 @@ const EventsList = () => {
                         <div className="bg-primary/10 p-6 rounded-full">
                             <Calendar size={48} className="text-primary" />
                         </div>
-                        <div>
-                            <h2 className="text-2xl font-bold">Nessun evento configurato</h2>
-                            <p className="text-text-muted max-w-sm mx-auto mt-2">Crea il tuo primo tipo di appuntamento per iniziare a ricevere prenotazioni dai tuoi clienti.</p>
-                        </div>
-                        <button
-                            onClick={openCreateModal}
-                            className="btn btn-primary px-8"
-                        >
-                            Inizia Ora
-                        </button>
+                        <h2 className="text-2xl font-bold">Nessun evento configurato</h2>
+                        <button onClick={openCreateModal} className="btn btn-primary px-8">Inizia Ora</button>
                     </div>
                 ) : (
                     events.map((event) => (
-                        <motion.div
-                            layout
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            key={event.id}
-                            className="card flex flex-col group relative overflow-hidden"
-                        >
+                        <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} key={event.id} className="card flex flex-col group relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-
                             <div className="flex-1">
                                 <div className="flex justify-between items-start mb-4">
-                                    <span className={`text-[10px] tracking-widest uppercase font-black px-2 py-1 rounded-md ${event.event_type === 'recurring' ? 'bg-primary/20 text-primary' : 'bg-success/20 text-success'
-                                        }`}>
-                                        {event.event_type}
+                                    <span className={`text-[10px] tracking-widest uppercase font-black px-2 py-1 rounded-md ${event.event_type === 'recurring' ? 'bg-primary/20 text-primary' : 'bg-warning/20 text-warning'}`}>
+                                        {event.event_type === 'recurring'
+                                            ? (event.start_date ? 'Ricorrente (dal ' + format(new Date(event.start_date), 'd/MM', { locale: it }) + ')' : 'Sempre Attivo')
+                                            : 'Settimana Singola'}
                                     </span>
-                                    <button
-                                        onClick={() => handleDelete(event.id)}
-                                        className="text-text-muted hover:text-error transition-colors p-1"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <button onClick={() => handleDelete(event.id)} className="text-text-muted hover:text-error transition-colors p-1"><Trash2 size={16} /></button>
                                 </div>
-
                                 <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
-                                <p className="text-sm text-text-muted mb-6 line-clamp-2 h-10 leading-relaxed">{event.description || 'Nessuna descrizione.'}</p>
-
+                                <p className="text-sm text-text-muted mb-6 line-clamp-2 h-10 leading-relaxed text-balance">{event.description || 'Nessuna descrizione.'}</p>
                                 <div className="space-y-3 mb-6 bg-glass-bg/50 p-4 rounded-xl border border-glass-border">
-                                    <div className="flex items-center gap-3 text-xs font-semibold text-text-main">
-                                        <Clock size={16} className="text-primary" />
-                                        <span>{event.duration_minutes} minuti</span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs font-semibold text-text-main">
-                                        <Calendar size={16} className="text-primary" />
-                                        <span className="truncate">{event.availabilities?.title || 'Nessuna regola'}</span>
-                                    </div>
-                                    {event.location && (
-                                        <div className="flex items-center gap-3 text-xs font-semibold text-text-main">
-                                            <MapPin size={16} className="text-primary" />
-                                            <span className="truncate">{event.location}</span>
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Clock size={16} className="text-primary" /> <span>{event.duration_minutes} minuti</span></div>
+                                    <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Calendar size={16} className="text-primary" /> <span className="truncate">{event.availabilities?.title || 'Nessuna regola'}</span></div>
                                 </div>
                             </div>
-
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => openEditModal(event)}
-                                    className="btn btn-outline flex-1 text-xs gap-1.5 py-2.5"
-                                >
-                                    <Edit size={14} /> Modifica
-                                </button>
-                                <button
-                                    onClick={() => copyToClipboard(event.slug)}
-                                    className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/10"
-                                >
-                                    <LinkIcon size={14} /> Link
-                                </button>
-                                <a
-                                    href={`/book/${event.slug}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="btn btn-outline p-2.5 text-text-muted hover:text-primary"
-                                >
-                                    <ExternalLink size={14} />
-                                </a>
+                                <button onClick={() => openEditModal(event)} className="btn btn-outline flex-1 text-xs gap-1.5 py-2.5"><Edit size={14} /> Modifica</button>
+                                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/10"><LinkIcon size={14} /> Link</button>
+                                <a href={`/book/${event.slug}`} target="_blank" rel="noreferrer" className="btn btn-outline p-2.5 text-text-muted hover:text-primary"><ExternalLink size={14} /></a>
                             </div>
                         </motion.div>
                     ))
@@ -242,105 +239,87 @@ const EventsList = () => {
             <AnimatePresence>
                 {showModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
-                            className="absolute inset-0 bg-black/80 backdrop-blur-md"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                            className="card w-full max-w-xl relative z-10 shadow-2xl border-primary/20"
-                        >
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 overflow-y-auto max-h-[90vh]">
                             <h2 className="text-3xl font-bold mb-1 tracking-tight">{editingEventId ? 'Modifica Evento' : 'Nuovo Tipo di Evento'}</h2>
-                            <p className="text-text-muted text-sm mb-8">{editingEventId ? 'Aggiorna i dettagli di questo evento.' : 'Definisci i dettagli per permettere ai clienti di prenotare.'}</p>
+                            <p className="text-text-muted text-sm mb-8">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
 
-                            <form className="flex flex-col gap-6" onSubmit={handleSave}>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="col-span-full">
-                                        <label className="label">Titolo Evento</label>
-                                        <input
-                                            type="text"
-                                            className="input"
-                                            required
-                                            placeholder="es. Consulenza Strategica"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="label">Regole Disponibilità</label>
-                                        <select
-                                            className="input"
-                                            required
-                                            value={formData.availability_id}
-                                            onChange={(e) => setFormData({ ...formData, availability_id: e.target.value })}
-                                        >
-                                            {availabilities.length === 0 && <option value="">Crea prima una disponibilità</option>}
-                                            {availabilities.map(a => (
-                                                <option key={a.id} value={a.id}>{a.title}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="label">Durata (minuti)</label>
-                                        <input
-                                            type="number"
-                                            className="input"
-                                            required
-                                            min="5"
-                                            max="480"
-                                            value={formData.duration_minutes}
-                                            onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="label">Slug URL Personalizzato</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-text-muted">/book/</span>
-                                            <input
-                                                type="text"
-                                                className="input pl-14"
-                                                required
-                                                placeholder="consulenza-30"
-                                                value={formData.slug}
-                                                onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
-                                            />
+                            <form className="flex flex-col gap-8" onSubmit={handleSave}>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    <div className="flex flex-col gap-6">
+                                        <div>
+                                            <label className="label">Titolo Evento</label>
+                                            <input type="text" className="input" required placeholder="es. Visita Specialistica" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="label">Regole Disponibilità</label>
+                                                <select className="input" required value={formData.availability_id} onChange={(e) => setFormData({ ...formData, availability_id: e.target.value })}>
+                                                    {availabilities.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="label">Durata (min)</label>
+                                                <input type="number" className="input" required min="5" value={formData.duration_minutes} onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="label">Slug URL</label>
+                                            <div className="relative">
+                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-text-muted">/book/</span>
+                                                <input type="text" className="input pl-14" required placeholder="visita-30" value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="label">Tipo di Ricorrenza</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {['recurring', 'single_week', 'recurring_from'].map((type) => (
+                                                    <button
+                                                        key={type}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newType = type === 'recurring_from' ? 'recurring' : type;
+                                                            setFormData({
+                                                                ...formData,
+                                                                event_type: newType,
+                                                                start_date: type === 'recurring' && !formData.start_date ? null : (formData.start_date || new Date())
+                                                            });
+                                                        }}
+                                                        className={`py-2 px-1 text-[10px] uppercase font-bold border-2 rounded-lg transition-all
+                                                            ${(type === 'recurring' && formData.event_type === 'recurring' && !formData.start_date) ||
+                                                                (type === 'single_week' && formData.event_type === 'single_week') ||
+                                                                (type === 'recurring_from' && formData.event_type === 'recurring' && formData.start_date)
+                                                                ? 'bg-primary/20 border-primary text-primary'
+                                                                : 'bg-glass-bg border-glass-border text-text-muted hover:border-primary/40'}
+                                                        `}
+                                                    >
+                                                        {type === 'recurring' ? 'Sempre' : type === 'single_week' ? 'Settimana Singola' : 'Da data...'}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label className="label">Località / Link Meet</label>
-                                        <input
-                                            type="text"
-                                            className="input"
-                                            placeholder="es. Google Meet o Indirizzo"
-                                            value={formData.location}
-                                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                        />
+                                    <div className="flex flex-col gap-6">
+                                        {(formData.event_type === 'single_week' || (formData.event_type === 'recurring' && formData.start_date)) && (
+                                            <div>
+                                                <label className="label">{formData.event_type === 'single_week' ? 'Seleziona la Settimana' : 'Data di inizio'}</label>
+                                                <WeekPicker
+                                                    selectedDate={formData.start_date ? new Date(formData.start_date) : null}
+                                                    onChange={(date) => setFormData({ ...formData, start_date: date })}
+                                                />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <label className="label">Descrizione</label>
+                                            <textarea className="input" rows="4" placeholder="Opzionale..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}></textarea>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="label">Descrizione Breve</label>
-                                    <textarea
-                                        className="input"
-                                        rows="3"
-                                        placeholder="Spiega brevemente di cosa si tratta..."
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    ></textarea>
-                                </div>
-
-                                <div className="flex justify-end gap-3 pt-4 border-t border-glass-border">
-                                    <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline" disabled={saving}>Annulla</button>
-                                    <button type="submit" className="btn btn-primary px-8" disabled={saving || availabilities.length === 0}>
+                                <div className="flex justify-end gap-3 pt-6 border-t border-glass-border">
+                                    <button type="button" onClick={() => setShowModal(false)} className="btn btn-outline">Annulla</button>
+                                    <button type="submit" className="btn btn-primary px-10" disabled={saving}>
                                         {saving ? <Loader2 className="animate-spin" size={20} /> : (editingEventId ? 'Salva Modifiche' : 'Crea Evento')}
                                     </button>
                                 </div>
@@ -354,5 +333,3 @@ const EventsList = () => {
 };
 
 export default EventsList;
-
-
