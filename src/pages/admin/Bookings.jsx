@@ -221,6 +221,7 @@ const BookingsList = () => {
                 <button
                     onClick={() => {
                         setIsCreating(true);
+                        setEditingId(null);
                         setSelectedBooking(null);
                         setEditFormData({
                             user_name: '', user_surname: '', user_phone: '', user_email: '', start_time: '', end_time: ''
