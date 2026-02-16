@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, Clock, User, Phone, Mail, Edit, Trash2, Search, Filter, X, Loader2, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -64,7 +64,7 @@ const BookingsList = () => {
         if (data) setEvents(data);
     };
 
-    const availableSlots = React.useMemo(() => {
+    const availableSlots = useMemo(() => {
         if (!selectedDate || !selectedEventId || !events) return [];
         const event = events.find(e => e.id === selectedEventId);
         if (!event || !event.availabilities) return [];
@@ -350,7 +350,12 @@ const BookingsList = () => {
                                         exit={{ height: 0, opacity: 0 }}
                                         className="overflow-hidden bg-bg-card border-t border-primary/20 mt-4 pt-6"
                                     >
-                                        <h3 className="font-bold text-lg mb-4 text-primary">Modifica Prenotazione</h3>
+                                        <div className="flex items-center justify-between mb-4 pb-2 border-b border-primary/10">
+                                            <h3 className="font-bold text-lg text-primary">Modifica Dettagli</h3>
+                                            <button type="button" onClick={() => setEditingId(null)} className="text-text-muted hover:text-error transition-colors">
+                                                <X size={18} />
+                                            </button>
+                                        </div>
                                         <form onSubmit={handleSaveEdit} className="space-y-6">
                                             {/* 1. Event & Date */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

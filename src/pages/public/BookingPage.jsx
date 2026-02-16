@@ -95,8 +95,8 @@ const BookingPage = () => {
             while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
                 const slotEnd = addMinutes(current, duration);
                 const isOverlapping = bookings.some(b => {
-                    const bStart = new Date(b.start_time);
-                    const bEnd = new Date(b.end_time);
+                    const bStart = parseISO(b.start_time);
+                    const bEnd = parseISO(b.end_time);
                     return areIntervalsOverlapping(
                         { start: current, end: slotEnd },
                         { start: bStart, end: bEnd }
