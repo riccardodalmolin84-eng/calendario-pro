@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock, Loader2, ExternalLink, MapPin, ChevronLeft, ChevronRight, Phone } from 'lucide-react';
+import { Plus, Search, MoreVertical, Link as LinkIcon, Edit, Trash2, Calendar, Clock, Loader2, ExternalLink, MapPin, ChevronLeft, ChevronRight, Phone, X, Copy, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, addMonths, subMonths, startOfMonth, endOfMonth, getDay, addDays, isBefore, startOfToday, startOfDay } from 'date-fns';
@@ -112,6 +112,81 @@ const WeekPicker = ({ selectedDate, onChange }) => {
     );
 };
 
+const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopyAll }) => {
+    const isEnabled = rules && rules.length > 0;
+
+    return (
+        <div className="flex flex-col gap-2 py-4 border-b border-white/5 last:border-none">
+            <div className="flex items-center gap-4">
+                {/* Switch Toggle */}
+                <button
+                    type="button"
+                    onClick={() => onToggle(day)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isEnabled ? 'bg-primary' : 'bg-white/10'}`}
+                >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+
+                <span className={`w-28 font-semibold text-sm ${isEnabled ? 'text-text-main' : 'text-text-muted opacity-50'}`}>{day}</span>
+
+                {isEnabled ? (
+                    <div className="flex-1 flex flex-col gap-2">
+                        {rules.map((rule, idx) => (
+                            <div key={idx} className="flex items-center gap-2 group/row">
+                                <div className="flex items-center gap-2 bg-bg-input border border-glass-border p-1.5 rounded-xl shadow-inner">
+                                    <input
+                                        type="time"
+                                        className="bg-transparent border-none outline-none text-xs text-text-main font-bold cursor-pointer"
+                                        value={rule.start}
+                                        onChange={(e) => onUpdate(day, idx, 'start', e.target.value)}
+                                    />
+                                    <span className="text-text-muted text-[10px] opacity-30">-</span>
+                                    <input
+                                        type="time"
+                                        className="bg-transparent border-none outline-none text-xs text-text-main font-bold cursor-pointer"
+                                        value={rule.end}
+                                        onChange={(e) => onUpdate(day, idx, 'end', e.target.value)}
+                                    />
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => onRemove(day, idx)}
+                                    className="p-1 text-text-muted hover:text-error opacity-0 group-hover/row:opacity-100 transition-opacity"
+                                >
+                                    <X size={14} />
+                                </button>
+
+                                {idx === rules.length - 1 && (
+                                    <div className="flex items-center gap-2 ml-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => onAdd(day)}
+                                            className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-primary transition-colors"
+                                            title="Aggiungi intervallo"
+                                        >
+                                            <Plus size={14} />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onCopyAll(day)}
+                                            className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-text-muted hover:text-primary transition-colors"
+                                            title="Copia a tutti i giorni"
+                                        >
+                                            <Copy size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <span className="text-xs text-text-muted italic opacity-40">Non disponibile</span>
+                )}
+            </div>
+        </div>
+    );
+};
 const EventsList = () => {
     const [events, setEvents] = useState([]);
     const [availabilities, setAvailabilities] = useState([]);
@@ -121,6 +196,18 @@ const EventsList = () => {
     const [selectedEventForManual, setSelectedEventForManual] = useState(null);
     const [saving, setSaving] = useState(false);
     const [editingEventId, setEditingEventId] = useState(null);
+
+    const initialRules = {
+        'Lunedì': [{ start: '09:00', end: '17:00' }],
+        'Martedì': [{ start: '09:00', end: '17:00' }],
+        'Mercoledì': [{ start: '09:00', end: '17:00' }],
+        'Giovedì': [{ start: '09:00', end: '17:00' }],
+        'Venerdì': [{ start: '09:00', end: '17:00' }],
+        'Sabato': [],
+        'Domenica': []
+    };
+
+    const [tempRules, setTempRules] = useState(initialRules);
 
     const initialFormState = {
         title: '',
@@ -147,7 +234,7 @@ const EventsList = () => {
             // Fetch Events
             const { data: eventsData } = await supabase
                 .from('events')
-                .select('*, availabilities(title)')
+                .select('*, availabilities(*)')
                 .order('created_at', { ascending: false });
 
             // Fetch Availabilities for the dropdown
@@ -158,9 +245,6 @@ const EventsList = () => {
             if (eventsData) setEvents(eventsData);
             if (availData) {
                 setAvailabilities(availData);
-                if (availData.length > 0 && !formData.availability_id) {
-                    setFormData(prev => ({ ...prev, availability_id: availData[0].id }));
-                }
             }
         } catch (err) {
             console.error(err);
@@ -179,6 +263,30 @@ const EventsList = () => {
         }
 
         try {
+            let availabilityId = dataToSave.availability_id;
+
+            // Save the availability rules first
+            const availData = {
+                title: `Orario ${dataToSave.title}`,
+                rules: tempRules
+            };
+
+            if (availabilityId && availabilityId !== 'new') {
+                // Update existing availability linked to this event
+                await supabase.from('availabilities').update(availData).eq('id', availabilityId);
+            } else {
+                // Create new availability
+                const { data: newAvail, error: availErr } = await supabase
+                    .from('availabilities')
+                    .insert([availData])
+                    .select()
+                    .single();
+
+                if (availErr) throw availErr;
+                availabilityId = newAvail.id;
+                dataToSave.availability_id = availabilityId;
+            }
+
             if (editingEventId) {
                 const { error } = await supabase
                     .from('events')
@@ -205,6 +313,52 @@ const EventsList = () => {
         }
     };
 
+    const toggleDay = (day) => {
+        setTempRules(prev => {
+            const hasRules = prev[day] && prev[day].length > 0;
+            return {
+                ...prev,
+                [day]: hasRules ? [] : [{ start: '09:00', end: '17:00' }]
+            };
+        });
+    };
+
+    const updateDayRule = (day, idx, field, value) => {
+        setTempRules(prev => {
+            const newDayRules = [...prev[day]];
+            newDayRules[idx] = { ...newDayRules[idx], [field]: value };
+            return { ...prev, [day]: newDayRules };
+        });
+    };
+
+    const addDayRule = (day) => {
+        setTempRules(prev => ({
+            ...prev,
+            [day]: [...prev[day], { start: '09:00', end: '17:00' }]
+        }));
+    };
+
+    const removeDayRule = (day, idx) => {
+        setTempRules(prev => ({
+            ...prev,
+            [day]: prev[day].filter((_, i) => i !== idx)
+        }));
+    };
+
+    const copyToAll = (sourceDay) => {
+        const sourceRules = tempRules[sourceDay];
+        setTempRules({
+            'Lunedì': [...sourceRules],
+            'Martedì': [...sourceRules],
+            'Mercoledì': [...sourceRules],
+            'Giovedì': [...sourceRules],
+            'Venerdì': [...sourceRules],
+            'Sabato': [...sourceRules],
+            'Domenica': [...sourceRules]
+        });
+    };
+
+
     const openEditModal = (event) => {
         setEditingEventId(event.id);
         setFormData({
@@ -217,15 +371,20 @@ const EventsList = () => {
             location: event.location || '',
             start_date: event.start_date ? new Date(event.start_date) : null
         });
+
+        if (event.availabilities?.rules) {
+            setTempRules(event.availabilities.rules);
+        } else {
+            setTempRules(initialRules);
+        }
+
         setShowModal(true);
     };
 
     const openCreateModal = () => {
         setEditingEventId(null);
-        setFormData({
-            ...initialFormState,
-            availability_id: availabilities[0]?.id || ''
-        });
+        setFormData(initialFormState);
+        setTempRules(initialRules);
         setShowModal(true);
     };
 
@@ -313,14 +472,12 @@ const EventsList = () => {
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <label className="label">Regole Disponibilità</label>
-                                                <select className="input" required value={formData.availability_id} onChange={(e) => setFormData({ ...formData, availability_id: e.target.value })}>
-                                                    {availabilities.map(a => <option key={a.id} value={a.id}>{a.title}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
                                                 <label className="label">Durata (min)</label>
                                                 <input type="number" className="input" required min="5" value={formData.duration_minutes} onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })} />
+                                            </div>
+                                            <div>
+                                                <label className="label">Luogo / Sede</label>
+                                                <input type="text" className="input" placeholder="es. Studio Medico" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
                                             </div>
                                         </div>
                                         <div>
@@ -361,9 +518,32 @@ const EventsList = () => {
                                     </div>
 
                                     <div className="flex flex-col gap-6">
+                                        <div>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <label className="label !mb-0">Orari Settimanali</label>
+                                                <div className="flex items-center gap-2 text-[10px] text-text-muted font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
+                                                    <Clock size={10} /> Disponibilità Inline
+                                                </div>
+                                            </div>
+                                            <div className="bg-glass-bg border border-glass-border rounded-2xl p-4 shadow-inner">
+                                                {['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'].map(day => (
+                                                    <WeekDayRow
+                                                        key={day}
+                                                        day={day}
+                                                        rules={tempRules[day]}
+                                                        onToggle={toggleDay}
+                                                        onUpdate={updateDayRule}
+                                                        onAdd={addDayRule}
+                                                        onRemove={removeDayRule}
+                                                        onCopyAll={copyToAll}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+
                                         {(formData.event_type === 'single_week' || (formData.event_type === 'recurring' && formData.start_date)) && (
                                             <div>
-                                                <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Data di Inizio' : 'Data di inizio'}</label>
+                                                <label className="label">{formData.event_type === 'single_week' ? 'Seleziona Settimana Specificata' : 'Data di inizio'}</label>
                                                 <WeekPicker
                                                     selectedDate={formData.start_date ? new Date(formData.start_date) : null}
                                                     onChange={(date) => setFormData({ ...formData, start_date: date })}
@@ -371,8 +551,8 @@ const EventsList = () => {
                                             </div>
                                         )}
                                         <div>
-                                            <label className="label">Descrizione</label>
-                                            <textarea className="input" rows="4" placeholder="Opzionale..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}></textarea>
+                                            <label className="label">Descrizione Breve</label>
+                                            <textarea className="input" rows="3" placeholder="Opzionale..." value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })}></textarea>
                                         </div>
                                     </div>
                                 </div>
