@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Calendar as CalendarIcon, Clock, MapPin, CheckCircle, ChevronLeft, ChevronRight, Loader2, RefreshCw, Globe, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { downloadICSFile } from '../../utils/calendar';
 import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore, startOfDay, startOfWeek, endOfWeek, isSameMonth } from 'date-fns';
 import { it } from 'date-fns/locale';
 
@@ -300,7 +301,31 @@ const BookingPage = () => {
                             </div>
                             <h2 className="text-5xl font-black mb-4 tracking-tighter uppercase">Successo!</h2>
                             <p className="text-[#111] max-w-md mx-auto mb-12 font-bold text-lg leading-relaxed">Il tuo appuntamento per <b>{event.title}</b> è stato confermato per il {format(selectedDate, 'd MMMM', { locale: it })} alle {selectedSlot}.</p>
-                            <button onClick={() => window.location.reload()} className="btn btn-primary px-12 py-5 text-lg uppercase tracking-widest font-black">Fine</button>
+
+                            <div className="flex flex-col md:flex-row gap-4 w-full max-w-md justify-center">
+                                <button
+                                    onClick={() => {
+                                        const [hours, minutes] = selectedSlot.split(':');
+                                        const startTime = new Date(selectedDate);
+                                        startTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                                        const endTime = addMinutes(startTime, event.duration_minutes);
+
+                                        downloadICSFile({
+                                            start_time: startTime,
+                                            end_time: endTime,
+                                            eventTitle: event.title,
+                                            user_name: bookingFormData.name,
+                                            user_surname: bookingFormData.surname,
+                                            location: event.location
+                                        });
+                                    }}
+                                    className="btn btn-outline px-8 py-5 text-lg uppercase tracking-widest font-bold flex items-center justify-center gap-3 hover:bg-black hover:text-white transition-all border-2 border-black"
+                                >
+                                    <CalendarIcon size={20} />
+                                    Aggiungi al Calendario
+                                </button>
+                                <button onClick={() => window.location.reload()} className="btn btn-primary px-12 py-5 text-lg uppercase tracking-widest font-black">Fine</button>
+                            </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
