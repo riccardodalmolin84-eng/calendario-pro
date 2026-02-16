@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Calendar, LayoutDashboard, Settings, Clock, ExternalLink } from 'lucide-react';
+import { Calendar, LayoutDashboard, Settings, Clock, ExternalLink, CalendarCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +22,7 @@ const Navbar = () => {
         { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} /> },
         { name: 'Eventi', path: '/admin/events', icon: <Calendar size={20} /> },
         { name: 'Disponibilità', path: '/admin/availabilities', icon: <Clock size={20} /> },
+        { name: 'Prenotazioni', path: '/admin/bookings', icon: <CalendarCheck size={20} /> },
         { name: 'Impostazioni', path: '/admin/settings', icon: <Settings size={20} /> },
     ];
 

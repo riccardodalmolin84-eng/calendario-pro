@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-
 import AdminDashboard from './pages/admin/Dashboard';
 import EventsList from './pages/admin/Events';
 import AvailabilitiesList from './pages/admin/Availabilities';
+import BookingsList from './pages/admin/Bookings';
 import Settings from './pages/admin/Settings';
 import BookingPage from './pages/public/BookingPage';
 import Navbar from './components/Navbar';
@@ -17,6 +18,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="events" element={<EventsList />} />
             <Route path="availabilities" element={<AvailabilitiesList />} />
+            <Route path="bookings" element={<BookingsList />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

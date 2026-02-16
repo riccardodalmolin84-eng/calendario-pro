@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, Calendar, Clock, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -131,7 +132,7 @@ const AdminDashboard = () => {
                                             </p>
                                         </div>
                                     </div>
-                                    <button className="btn btn-outline py-1 px-3 text-xs">Vedi</button>
+                                    <Link to="/admin/bookings" className="btn btn-outline py-1 px-3 text-xs">Vedi</Link>
                                 </div>
                             ))
                         )}
