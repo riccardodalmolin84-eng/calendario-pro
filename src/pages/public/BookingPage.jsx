@@ -81,6 +81,65 @@ const BookingPage = () => {
         return eachDayOfInterval({ start, end });
     }, [currentMonth]);
 
+    const availableDates = useMemo(() => {
+        if (!availability || !event) return new Set();
+
+        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+        const availableSet = new Set();
+
+        calendarDays.forEach(day => {
+            const today = startOfToday();
+            // Basic month and past check
+            if (isBefore(day, today) || !isSameMonth(day, currentMonth)) return;
+
+            // Type specific activation/expiry logic
+            if (event.event_type === 'recurring' && event.start_date) {
+                if (isBefore(day, startOfDay(new Date(event.start_date)))) return;
+            }
+            if (event.event_type === 'single_week' && event.start_date) {
+                const start = startOfDay(new Date(event.start_date));
+                const end = addDays(start, 6);
+                if (day < start || day > end) return;
+            }
+
+            const dayName = dayNames[getDay(day)];
+            const rules = availability.rules[dayName] || [];
+            if (rules.length === 0) return;
+
+            // Deep check for real available slots
+            const duration = event.duration_minutes;
+            let hasFreeSlot = false;
+
+            for (const rule of rules) {
+                let current = parse(rule.start, 'HH:mm', day);
+                const end = parse(rule.end, 'HH:mm', day);
+
+                while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
+                    const slotEnd = addMinutes(current, duration);
+                    const isOverlapping = bookings.some(b => {
+                        const bStart = parseISO(b.start_time);
+                        const bEnd = parseISO(b.end_time);
+                        return areIntervalsOverlapping(
+                            { start: current, end: slotEnd },
+                            { start: bStart, end: bEnd }
+                        );
+                    });
+
+                    if (!isOverlapping) {
+                        hasFreeSlot = true;
+                        break;
+                    }
+                    current = addMinutes(current, duration);
+                }
+                if (hasFreeSlot) break;
+            }
+
+            if (hasFreeSlot) availableSet.add(day.toISOString());
+        });
+
+        return availableSet;
+    }, [calendarDays, availability, event, bookings, currentMonth]);
+
     const availableSlots = useMemo(() => {
         if (!selectedDate || !availability || !event) return [];
         const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
@@ -217,26 +276,9 @@ const BookingPage = () => {
 
                                 <div className="grid grid-cols-7 gap-2.5">
                                     {calendarDays.map(day => {
-                                        const today = startOfToday();
-                                        const isPastDay = isBefore(day, today);
                                         const isSelected = selectedDate && isSameDay(day, selectedDate);
                                         const isMonthDay = isSameMonth(day, currentMonth);
-
-                                        // Base availability for recurring events
-                                        let isAvailable = isMonthDay && !isPastDay;
-
-                                        // Apply activation date (start_date) for recurring events
-                                        if (event.event_type === 'recurring' && event.start_date) {
-                                            const start = startOfDay(new Date(event.start_date));
-                                            if (isBefore(day, start)) isAvailable = false;
-                                        }
-
-                                        // Apply strict 7-day window for single_week events
-                                        if (event.event_type === 'single_week' && event.start_date) {
-                                            const start = startOfDay(new Date(event.start_date));
-                                            const end = addDays(start, 6);
-                                            isAvailable = isMonthDay && !isPastDay && day >= start && day <= end;
-                                        }
+                                        const isAvailable = availableDates.has(day.toISOString());
 
                                         return (
                                             <button
@@ -246,13 +288,13 @@ const BookingPage = () => {
                                                 className={`aspect-square relative flex items-center justify-center rounded-lg text-sm transition-all ${isSelected
                                                     ? 'bg-[#111] text-white shadow-xl font-black z-10'
                                                     : isAvailable
-                                                        ? 'bg-[#f0f2f5] text-[#111] hover:bg-[#e4e7eb] font-bold'
-                                                        : 'text-[#ddd] cursor-not-allowed'
-                                                    } ${!isMonthDay ? 'opacity-0' : ''}`}
+                                                        ? 'bg-white border-2 border-black text-[#111] font-black'
+                                                        : 'bg-[#f0f2f5] text-[#ddd] cursor-not-allowed opacity-50'
+                                                    } ${!isMonthDay ? 'opacity-0 pointer-events-none' : ''}`}
                                             >
                                                 {format(day, 'd')}
                                                 {isSameDay(day, today) && !isSelected && (
-                                                    <div className="absolute bottom-1 w-1 h-1 bg-black rounded-full" />
+                                                    <div className="absolute bottom-1 w-1.5 h-1.5 bg-[#111] rounded-full" />
                                                 )}
                                             </button>
                                         );
@@ -280,11 +322,11 @@ const BookingPage = () => {
                                                     key={slot}
                                                     onClick={() => setSelectedSlot(slot)}
                                                     className={`w-full py-4 px-6 rounded-xl border-2 transition-all flex items-center justify-start gap-4 ${selectedSlot === slot
-                                                        ? 'border-black bg-white text-black shadow-lg font-bold'
-                                                        : 'border-[#f0f2f5] hover:border-black/10 text-[#222] bg-white'
+                                                        ? 'border-black bg-black text-white shadow-xl font-black scale-[1.02]'
+                                                        : 'border-[#f0f2f5] hover:border-black/20 text-[#222] bg-white'
                                                         }`}
                                                 >
-                                                    <div className="w-2 h-2 rounded-full bg-[#2ecc71]" />
+                                                    <div className={`w-2 h-2 rounded-full ${selectedSlot === slot ? 'bg-white animate-pulse' : 'bg-[#2ecc71]'}`} />
                                                     <span className="text-sm font-bold">{formatTime(slot)}</span>
                                                 </button>
                                             ))

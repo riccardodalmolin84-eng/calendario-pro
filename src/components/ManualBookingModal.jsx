@@ -20,10 +20,12 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
         phone: '',
         email: ''
     });
+    const [bookings, setBookings] = useState([]);
 
     useEffect(() => {
         if (isOpen && event) {
             fetchAvailability();
+            fetchBookings();
             setStep(1);
             setSelectedDate(null);
             setSelectedSlot(null);
@@ -37,6 +39,11 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
             }
         }
     }, [isOpen, event]);
+
+    const fetchBookings = async () => {
+        const { data } = await supabase.from('bookings').select('start_time, end_time');
+        if (data) setBookings(data);
+    };
 
     const fetchAvailability = async () => {
         if (!event?.availability_id) return;
@@ -61,6 +68,52 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
         return eachDayOfInterval({ start, end });
     }, [currentMonth]);
 
+    const availableDates = useMemo(() => {
+        if (!availability || !event) return new Set();
+
+        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+        const availableSet = new Set();
+        const duration = event.duration_minutes;
+
+        calendarDays.forEach(day => {
+            const today = startOfToday();
+            if (isBefore(day, today)) return;
+
+            if (event.event_type === 'single_week' && event.start_date) {
+                const start = startOfDay(new Date(event.start_date));
+                const end = addDays(start, 6);
+                if (isBefore(day, start) || isAfter(day, end)) return;
+            }
+
+            const dayName = dayNames[getDay(day)];
+            const rules = availability.rules[dayName] || [];
+            if (rules.length === 0) return;
+
+            let hasFreeSlot = false;
+            for (const rule of rules) {
+                let current = parse(rule.start, 'HH:mm', day);
+                const end = parse(rule.end, 'HH:mm', day);
+
+                while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
+                    const slotEnd = addMinutes(current, duration);
+                    const isOverlapping = bookings.some(b => areIntervalsOverlapping(
+                        { start: current, end: slotEnd },
+                        { start: new Date(b.start_time), end: new Date(b.end_time) }
+                    ));
+
+                    if (!isOverlapping) {
+                        hasFreeSlot = true;
+                        break;
+                    }
+                    current = addMinutes(current, duration);
+                }
+                if (hasFreeSlot) break;
+            }
+            if (hasFreeSlot) availableSet.add(day.toISOString());
+        });
+        return availableSet;
+    }, [calendarDays, availability, event, bookings]);
+
     const availableSlots = useMemo(() => {
         if (!selectedDate || !availability || !event) return [];
 
@@ -76,13 +129,21 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
             const end = parse(rule.end, 'HH:mm', selectedDate);
 
             while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
-                slots.push(format(current, 'HH:mm'));
+                const slotEnd = addMinutes(current, duration);
+                const isOverlapping = bookings.some(b => areIntervalsOverlapping(
+                    { start: current, end: slotEnd },
+                    { start: new Date(b.start_time), end: new Date(b.end_time) }
+                ));
+
+                if (!isOverlapping) {
+                    slots.push(format(current, 'HH:mm'));
+                }
                 current = addMinutes(current, duration);
             }
         });
 
         return slots;
-    }, [selectedDate, availability, event]);
+    }, [selectedDate, availability, event, bookings]);
 
     const handleBooking = async (e) => {
         e.preventDefault();
@@ -165,22 +226,18 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
                                     <div className="grid grid-cols-7 gap-1">
                                         {Array.from({ length: (getDay(startOfMonth(currentMonth)) + 6) % 7 }).map((_, i) => <div key={i} />)}
                                         {calendarDays.map(day => {
-                                            const today = startOfToday();
-                                            let isPast = isBefore(day, today);
-
-                                            if (event.event_type === 'single_week' && event.start_date) {
-                                                const start = startOfDay(new Date(event.start_date));
-                                                const end = addDays(start, 6);
-                                                if (isBefore(day, start) || isAfter(day, end)) isPast = true;
-                                            }
-
                                             const isSelected = selectedDate && isSameDay(day, selectedDate);
+                                            const isAvailable = availableDates.has(day.toISOString());
                                             return (
                                                 <button
                                                     key={day.toISOString()}
-                                                    disabled={isPast}
+                                                    disabled={!isAvailable}
                                                     onClick={() => { setSelectedDate(day); setSelectedSlot(null); }}
-                                                    className={`aspect-square flex items-center justify-center rounded-lg text-xs font-bold transition-all ${isSelected ? 'bg-primary text-white shadow-lg' : isPast ? 'opacity-20 cursor-not-allowed' : 'hover:bg-primary/10 text-text-muted hover:text-primary'
+                                                    className={`aspect-square flex items-center justify-center rounded-lg text-xs font-bold transition-all ${isSelected
+                                                        ? 'bg-primary text-white shadow-lg z-10'
+                                                        : isAvailable
+                                                            ? 'bg-white border-2 border-primary/30 text-primary hover:border-primary'
+                                                            : 'opacity-10 grayscale cursor-not-allowed'
                                                         }`}
                                                 >
                                                     {format(day, 'd')}
@@ -200,7 +257,9 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
                                                     <button
                                                         key={slot}
                                                         onClick={() => setSelectedSlot(slot)}
-                                                        className={`w-full py-3 px-4 rounded-xl border-2 transition-all text-xs font-bold text-center ${selectedSlot === slot ? 'bg-primary/10 border-primary text-primary' : 'bg-glass-bg border-glass-border hover:border-primary/40 text-text-main'
+                                                        className={`w-full py-3 px-4 rounded-xl border-2 transition-all text-xs font-bold text-center ${selectedSlot === slot
+                                                            ? 'bg-primary border-primary text-white shadow-xl scale-[1.03]'
+                                                            : 'bg-glass-bg border-glass-border hover:border-primary/40 text-text-main'
                                                             }`}
                                                     >
                                                         {slot}
