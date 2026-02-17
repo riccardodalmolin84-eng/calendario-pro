@@ -30,8 +30,8 @@ const Navbar = () => {
         <nav className="card mt-4 mx-4 flex flex-col md:flex-row items-center justify-between py-3 px-6 shadow-xl border-primary/10 relative z-50 bg-bg-card">
             <div className="flex items-center justify-between w-full md:w-auto">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-md overflow-hidden flex items-center justify-center bg-transparent shadow-sm">
-                        <img src="/logo-aloe.png" alt="Aloe Logo" className="w-[110%] h-[110%] object-cover" />
+                    <div className="w-[14px] h-[14px] rounded-sm overflow-hidden flex items-center justify-center bg-transparent shadow-sm">
+                        <img src="/logo-aloe.png" alt="Aloe Logo" className="w-[115%] h-[115%] object-cover" />
                     </div>
                     <span className="text-lg font-bold tracking-tighter text-text-main">Aloe<span className="text-primary">Admin</span></span>
                 </div>
