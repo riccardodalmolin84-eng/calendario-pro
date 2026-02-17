@@ -269,8 +269,8 @@ const BookingPage = () => {
                                 </div>
 
                                 <div className="grid grid-cols-7 gap-1 mb-6">
-                                    {['LUN', 'MAR', 'MER', 'GIO', 'VEN', 'SAB', 'DOM'].map(d => (
-                                        <div key={d} className="text-center text-[11px] font-black text-[#bbb] tracking-widest py-2">{d}</div>
+                                    {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map(d => (
+                                        <div key={d} className="text-center text-[10px] font-black text-[#bbb] py-2">{d}</div>
                                     ))}
                                 </div>
 
@@ -312,6 +312,17 @@ const BookingPage = () => {
                                         );
                                     })}
                                 </div>
+
+                                {selectedSlot && (
+                                    <motion.button
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        onClick={() => setStep(2)}
+                                        className="w-full mt-8 btn btn-primary py-4 uppercase tracking-widest font-black md:hidden"
+                                    >
+                                        Prosegui
+                                    </motion.button>
+                                )}
                             </div>
 
                             {/* 3. SLOTS PANEL */}
@@ -362,7 +373,7 @@ const BookingPage = () => {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         onClick={() => setStep(2)}
-                                        className="w-full mt-8 btn btn-primary py-4 uppercase tracking-widest font-black"
+                                        className="w-full mt-8 btn btn-primary py-4 uppercase tracking-widest font-black hidden md:block"
                                     >
                                         Prosegui
                                     </motion.button>
