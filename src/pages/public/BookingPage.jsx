@@ -466,7 +466,8 @@ const BookingPage = () => {
                                 <button
                                     onClick={() => {
                                         const dateStr = format(selectedDate, 'd MMMM', { locale: it });
-                                        const message = `Ciao! Mi invio un promemoria per il mio appuntamento "${event.title}" il giorno ${dateStr} alle ore ${selectedSlot}.`;
+                                        const locationStr = event.location || "PUCCINI 74 IMOLA BOLOGNA";
+                                        const message = `Ciao, Appuntamento per ritirare l'aloe: ${event.title} - ${dateStr} ore ${selectedSlot} presso ${locationStr}`;
                                         const cleanPhone = bookingFormData.phone.replace(/\+/g, '').replace(/\s/g, '');
                                         window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
                                     }}
