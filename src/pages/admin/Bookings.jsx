@@ -45,7 +45,7 @@ const BookingsList = () => {
             const { data, error } = await supabase
                 .from('bookings')
                 .select('*, events(title, slug, duration_minutes, location)')
-                .order('start_time', { ascending: false });
+                .order('start_time', { ascending: true });
 
             if (error) throw error;
             setBookings(data || []);
@@ -114,7 +114,7 @@ const BookingsList = () => {
             );
         }
 
-        // Status filter
+        // 1. Apply Status filtering
         if (filterStatus === 'upcoming') {
             filtered = filtered.filter(b => isFuture(parseISO(b.start_time)));
         } else if (filterStatus === 'past') {
@@ -122,6 +122,28 @@ const BookingsList = () => {
         } else if (filterStatus === 'today') {
             filtered = filtered.filter(b => isToday(parseISO(b.start_time)));
         }
+
+        // 2. Explicit sorting: "Closest to Furthest"
+        filtered.sort((a, b) => {
+            const dateA = parseISO(a.start_time);
+            const dateB = parseISO(b.start_time);
+            const now = new Date();
+
+            const isAFuture = dateA >= now;
+            const isBFuture = dateB >= now;
+
+            // Priority 1: Future bookings come before past bookings
+            if (isAFuture && !isBFuture) return -1;
+            if (!isAFuture && isBFuture) return 1;
+
+            if (isAFuture && isBFuture) {
+                // Priority 2: Among future bookings, soonest first (ascending)
+                return dateA - dateB;
+            } else {
+                // Priority 3: Among past bookings, most recent first (descending)
+                return dateB - dateA;
+            }
+        });
 
         setFilteredBookings(filtered);
     };

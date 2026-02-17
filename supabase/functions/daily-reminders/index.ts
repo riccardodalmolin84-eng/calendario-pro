@@ -6,88 +6,95 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
 interface Booking {
-    id: string
-    user_name: string
-    user_surname: string
-    user_email: string
-    user_phone: string
-    start_time: string
-    end_time: string
-    events: {
-        title: string
-        location: string
-        duration_minutes: number
-    }
+  id: string
+  user_name: string
+  user_surname: string
+  user_email: string
+  user_phone: string
+  start_time: string
+  end_time: string
+  events: {
+    title: string
+    location: string
+    duration_minutes: number
+  }
 }
 
 serve(async (req) => {
-    try {
-        const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!)
+  try {
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!)
 
-        // Get today's date range
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-        const tomorrow = new Date(today)
-        tomorrow.setDate(tomorrow.getDate() + 1)
+    // Get today's date in Italy timezone (UTC+1)
+    // We calculate the current time in Italy by adding 1 hour to UTC (Winter time)
+    const now = new Date()
+    const italyOffset = 1 * 60 * 60 * 1000 // 1 hour in ms
+    const todayItaly = new Date(now.getTime() + italyOffset)
 
-        // Fetch today's bookings
-        const { data: bookings, error: bookingsError } = await supabase
-            .from('bookings')
-            .select('*, events(title, location, duration_minutes)')
-            .gte('start_time', today.toISOString())
-            .lt('start_time', tomorrow.toISOString())
-            .order('start_time', { ascending: true })
+    todayItaly.setUTCHours(0, 0, 0, 0)
+    const startOfToday = new Date(todayItaly.getTime() - italyOffset) // Convert back to UTC for query
 
-        if (bookingsError) throw bookingsError
+    const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000)
 
-        // If no bookings, exit early
-        if (!bookings || bookings.length === 0) {
-            return new Response(
-                JSON.stringify({ message: 'No bookings for today' }),
-                { headers: { 'Content-Type': 'application/json' }, status: 200 }
-            )
-        }
+    console.log('Querying for Italy Today:', startOfToday.toISOString(), 'to', endOfToday.toISOString())
 
-        // Fetch admin email
-        const { data: adminProfile } = await supabase
-            .from('admin_profiles')
-            .select('email')
-            .single()
+    // Fetch today's bookings
+    const { data: bookings, error: bookingsError } = await supabase
+      .from('bookings')
+      .select('*, events(title, location, duration_minutes)')
+      .gte('start_time', startOfToday.toISOString())
+      .lt('start_time', endOfToday.toISOString())
+      .order('start_time', { ascending: true })
 
-        if (!adminProfile?.email) {
-            throw new Error('Admin email not configured')
-        }
+    if (bookingsError) throw bookingsError
 
-        // Send admin summary email
-        await sendAdminSummary(adminProfile.email, bookings as Booking[])
-
-        // Send customer reminder emails
-        for (const booking of bookings as Booking[]) {
-            if (booking.user_email) {
-                await sendCustomerReminder(booking)
-            }
-        }
-
-        return new Response(
-            JSON.stringify({
-                message: 'Emails sent successfully',
-                bookingsCount: bookings.length
-            }),
-            { headers: { 'Content-Type': 'application/json' }, status: 200 }
-        )
-    } catch (error) {
-        return new Response(
-            JSON.stringify({ error: error.message }),
-            { headers: { 'Content-Type': 'application/json' }, status: 500 }
-        )
+    // If no bookings, exit early
+    if (!bookings || bookings.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No bookings for today' }),
+        { headers: { 'Content-Type': 'application/json' }, status: 200 }
+      )
     }
+
+    // Fetch admin email
+    const { data: adminProfile } = await supabase
+      .from('admin_profiles')
+      .select('email')
+      .single()
+
+    if (!adminProfile?.email) {
+      throw new Error('Admin email not configured')
+    }
+
+    // Send admin summary email
+    await sendAdminSummary(adminProfile.email, bookings as Booking[], todayItaly)
+
+    // Send customer reminder emails
+    for (const booking of bookings as Booking[]) {
+      if (booking.user_email) {
+        await sendCustomerReminder(booking)
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        message: 'Emails sent successfully',
+        bookingsCount: bookings.length
+      }),
+      { headers: { 'Content-Type': 'application/json' }, status: 200 }
+    )
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { 'Content-Type': 'application/json' }, status: 500 }
+    )
+  }
 })
 
-async function sendAdminSummary(adminEmail: string, bookings: Booking[]) {
-    const bookingsList = bookings.map(b => {
-        const startTime = new Date(b.start_time)
-        const timeStr = startTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-        return `
+async function sendAdminSummary(adminEmail: string, bookings: Booking[], todayItaly: Date) {
+  const bookingsList = bookings.map(b => {
+    const startTime = new Date(b.start_time)
+    const timeStr = startTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+    return `
       <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 12px 8px; font-weight: 600;">${timeStr}</td>
         <td style="padding: 12px 8px;">${b.user_name} ${b.user_surname}</td>
@@ -96,9 +103,9 @@ async function sendAdminSummary(adminEmail: string, bookings: Booking[]) {
         <td style="padding: 12px 8px;">${b.user_email || '-'}</td>
       </tr>
     `
-    }).join('')
+  }).join('')
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -109,7 +116,7 @@ async function sendAdminSummary(adminEmail: string, bookings: Booking[]) {
       <div style="max-width: 800px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 32px; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 800;">📅 Appuntamenti di Oggi</h1>
-          <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 16px;">${new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 16px;">${todayItaly.toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Rome' })}</p>
         </div>
         <div style="padding: 32px;">
           <p style="font-size: 16px; color: #333; margin-bottom: 24px;">Hai <strong>${bookings.length}</strong> appuntament${bookings.length === 1 ? 'o' : 'i'} programmati per oggi:</p>
@@ -136,30 +143,30 @@ async function sendAdminSummary(adminEmail: string, bookings: Booking[]) {
     </html>
   `
 
-    await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${RESEND_API_KEY}`
-        },
-        body: JSON.stringify({
-            from: 'CalendarioAloe <onboarding@resend.dev>',
-            to: [adminEmail],
-            subject: `📅 ${bookings.length} Appuntament${bookings.length === 1 ? 'o' : 'i'} Oggi - ${new Date().toLocaleDateString('it-IT')}`,
-            html
-        })
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${RESEND_API_KEY}`
+    },
+    body: JSON.stringify({
+      from: 'CalendarioAloe <onboarding@resend.dev>',
+      to: [adminEmail],
+      subject: `📅 ${bookings.length} Appuntament${bookings.length === 1 ? 'o' : 'i'} Oggi - ${todayItaly.toLocaleDateString('it-IT', { timeZone: 'Europe/Rome' })}`,
+      html
     })
+  })
 }
 
 async function sendCustomerReminder(booking: Booking) {
-    const startTime = new Date(booking.start_time)
-    const timeStr = startTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-    const dateStr = startTime.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+  const startTime = new Date(booking.start_time)
+  const timeStr = startTime.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+  const dateStr = startTime.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
 
-    // Generate .ics calendar file
-    const icsContent = generateICS(booking)
+  // Generate .ics calendar file
+  const icsContent = generateICS(booking)
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -194,34 +201,34 @@ async function sendCustomerReminder(booking: Booking) {
     </html>
   `
 
-    await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${RESEND_API_KEY}`
-        },
-        body: JSON.stringify({
-            from: 'Aloe di Elisabetta <onboarding@resend.dev>',
-            to: [booking.user_email],
-            subject: `🌿 Promemoria: Appuntamento Oggi alle ${timeStr}`,
-            html,
-            attachments: [{
-                filename: 'appuntamento.ics',
-                content: Buffer.from(icsContent).toString('base64')
-            }]
-        })
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${RESEND_API_KEY}`
+    },
+    body: JSON.stringify({
+      from: 'Aloe di Elisabetta <onboarding@resend.dev>',
+      to: [booking.user_email],
+      subject: `🌿 Promemoria: Appuntamento Oggi alle ${timeStr}`,
+      html,
+      attachments: [{
+        filename: 'appuntamento.ics',
+        content: Buffer.from(icsContent).toString('base64')
+      }]
     })
+  })
 }
 
 function generateICS(booking: Booking): string {
-    const startTime = new Date(booking.start_time)
-    const endTime = new Date(booking.end_time)
+  const startTime = new Date(booking.start_time)
+  const endTime = new Date(booking.end_time)
 
-    const formatDate = (date: Date) => {
-        return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-    }
+  const formatDate = (date: Date) => {
+    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  }
 
-    return `BEGIN:VCALENDAR
+  return `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//CalendarioAloe//IT
 BEGIN:VEVENT
