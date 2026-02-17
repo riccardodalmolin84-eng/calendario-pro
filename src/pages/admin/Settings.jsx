@@ -259,9 +259,9 @@ A presto!`
                                             const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(previewMessage)}`;
                                             window.open(url, '_blank');
                                         }}
-                                        className="text-[10px] bg-primary text-white px-2 py-1 rounded-full font-bold flex items-center gap-1 hover:scale-105 transition-transform"
+                                        className="text-[10px] bg-[#25D366] text-white px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 hover:scale-110 shadow-lg shadow-[#25D366]/20 transition-all border-none cursor-pointer"
                                     >
-                                        <MessageSquare size={10} />
+                                        <MessageSquare size={12} fill="white" />
                                         Invia a Me Stesso
                                     </button>
                                 )}
