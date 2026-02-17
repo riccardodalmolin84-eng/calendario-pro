@@ -257,7 +257,7 @@ const BookingPage = () => {
                             </div>
 
                             {/* 2. CALENDAR PANEL */}
-                            <div className="p-10 border-r border-[#f0f0f0] bg-white">
+                            <div className="p-6 md:p-10 border-r border-[#f0f0f0] bg-white flex-1 min-w-[320px] md:min-w-[400px]">
                                 <div className="flex justify-between items-center mb-10">
                                     <h3 className="text-xl font-black text-[#111] capitalize">
                                         {format(currentMonth, 'MMMM yyyy', { locale: it })}
@@ -274,7 +274,7 @@ const BookingPage = () => {
                                     ))}
                                 </div>
 
-                                <div className="grid grid-cols-7 gap-2.5">
+                                <div className="grid grid-cols-7 gap-1.5 md:gap-3">
                                     {calendarDays.map(day => {
                                         const isSelected = selectedDate && isSameDay(day, selectedDate);
                                         const isMonthDay = isSameMonth(day, currentMonth);
@@ -297,7 +297,7 @@ const BookingPage = () => {
                                                     color: '#dddddd',
                                                     opacity: 0.5
                                                 }}
-                                                className={`aspect-square relative flex items-center justify-center rounded-lg text-sm transition-all ${isSelected
+                                                className={`aspect-square relative flex items-center justify-center rounded-lg text-base md:text-lg transition-all ${isSelected
                                                     ? 'shadow-xl font-black z-10'
                                                     : isAvailable
                                                         ? 'border-2 font-black'
@@ -306,7 +306,7 @@ const BookingPage = () => {
                                             >
                                                 {format(day, 'd')}
                                                 {isSameDay(day, today) && !isSelected && (
-                                                    <div className="absolute bottom-1 w-1.5 h-1.5 bg-[#111] rounded-full" />
+                                                    <div className="absolute bottom-1 w-2 h-2 bg-[#111] rounded-full" />
                                                 )}
                                             </button>
                                         );
@@ -318,7 +318,7 @@ const BookingPage = () => {
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         onClick={() => setStep(2)}
-                                        className="w-full mt-8 btn btn-primary py-4 uppercase tracking-widest font-black md:hidden"
+                                        className="w-full mt-8 btn btn-primary py-5 uppercase tracking-widest font-black text-lg"
                                     >
                                         Prosegui
                                     </motion.button>
@@ -368,16 +368,7 @@ const BookingPage = () => {
                                     )}
                                 </div>
 
-                                {selectedSlot && (
-                                    <motion.button
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        onClick={() => setStep(2)}
-                                        className="w-full mt-8 btn btn-primary py-4 uppercase tracking-widest font-black hidden md:block"
-                                    >
-                                        Prosegui
-                                    </motion.button>
-                                )}
+                                {/* Slot selection logic ends here - prosegui button removed from here */}
                             </div>
                         </>
                     )}
