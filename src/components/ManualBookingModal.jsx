@@ -233,11 +233,22 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
                                                     key={day.toISOString()}
                                                     disabled={!isAvailable}
                                                     onClick={() => { setSelectedDate(day); setSelectedSlot(null); }}
+                                                    style={isSelected ? {
+                                                        backgroundColor: 'var(--primary)',
+                                                        color: '#ffffff'
+                                                    } : isAvailable ? {
+                                                        backgroundColor: '#ffffff',
+                                                        borderColor: 'rgba(96, 108, 56, 0.3)',
+                                                        color: 'var(--primary)'
+                                                    } : {
+                                                        opacity: 0.2,
+                                                        filter: 'grayscale(1)'
+                                                    }}
                                                     className={`aspect-square flex items-center justify-center rounded-lg text-xs font-bold transition-all ${isSelected
-                                                        ? 'bg-primary text-white shadow-lg z-10'
+                                                        ? 'shadow-lg z-10'
                                                         : isAvailable
-                                                            ? 'bg-white border-2 border-primary/30 text-primary hover:border-primary'
-                                                            : 'opacity-10 grayscale cursor-not-allowed'
+                                                            ? 'border-2'
+                                                            : 'cursor-not-allowed'
                                                         }`}
                                                 >
                                                     {format(day, 'd')}
@@ -257,8 +268,15 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
                                                     <button
                                                         key={slot}
                                                         onClick={() => setSelectedSlot(slot)}
+                                                        style={selectedSlot === slot ? {
+                                                            backgroundColor: 'var(--primary)',
+                                                            borderColor: 'var(--primary)',
+                                                            color: '#ffffff',
+                                                            transform: 'scale(1.03)',
+                                                            boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+                                                        } : {}}
                                                         className={`w-full py-3 px-4 rounded-xl border-2 transition-all text-xs font-bold text-center ${selectedSlot === slot
-                                                            ? 'bg-primary border-primary text-white shadow-xl scale-[1.03]'
+                                                            ? ''
                                                             : 'bg-glass-bg border-glass-border hover:border-primary/40 text-text-main'
                                                             }`}
                                                     >

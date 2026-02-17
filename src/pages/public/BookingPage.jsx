@@ -285,11 +285,23 @@ const BookingPage = () => {
                                                 key={day.toISOString()}
                                                 disabled={!isAvailable}
                                                 onClick={() => { setSelectedDate(day); setSelectedSlot(null); }}
+                                                style={isSelected ? {
+                                                    backgroundColor: '#111111',
+                                                    color: '#ffffff'
+                                                } : isAvailable ? {
+                                                    backgroundColor: '#ffffff',
+                                                    borderColor: '#111111',
+                                                    color: '#111111'
+                                                } : {
+                                                    backgroundColor: '#f0f2f5',
+                                                    color: '#dddddd',
+                                                    opacity: 0.5
+                                                }}
                                                 className={`aspect-square relative flex items-center justify-center rounded-lg text-sm transition-all ${isSelected
-                                                    ? 'bg-[#111] text-white shadow-xl font-black z-10'
+                                                    ? 'shadow-xl font-black z-10'
                                                     : isAvailable
-                                                        ? 'bg-white border-2 border-black text-[#111] font-black'
-                                                        : 'bg-[#f0f2f5] text-[#ddd] cursor-not-allowed opacity-50'
+                                                        ? 'border-2 font-black'
+                                                        : 'cursor-not-allowed'
                                                     } ${!isMonthDay ? 'opacity-0 pointer-events-none' : ''}`}
                                             >
                                                 {format(day, 'd')}
@@ -321,8 +333,15 @@ const BookingPage = () => {
                                                 <button
                                                     key={slot}
                                                     onClick={() => setSelectedSlot(slot)}
+                                                    style={selectedSlot === slot ? {
+                                                        backgroundColor: '#000000',
+                                                        color: '#ffffff',
+                                                        borderColor: '#000000',
+                                                        transform: 'scale(1.02)',
+                                                        boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+                                                    } : {}}
                                                     className={`w-full py-4 px-6 rounded-xl border-2 transition-all flex items-center justify-start gap-4 ${selectedSlot === slot
-                                                        ? 'border-black bg-black text-white shadow-xl font-black scale-[1.02]'
+                                                        ? 'font-black'
                                                         : 'border-[#f0f2f5] hover:border-black/20 text-[#222] bg-white'
                                                         }`}
                                                 >

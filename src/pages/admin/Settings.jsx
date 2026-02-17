@@ -259,7 +259,23 @@ A presto!`
                                             const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(previewMessage)}`;
                                             window.open(url, '_blank');
                                         }}
-                                        className="text-[10px] bg-[#25D366] text-white px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 hover:scale-110 shadow-lg shadow-[#25D366]/20 transition-all border-none cursor-pointer"
+                                        style={{
+                                            backgroundColor: '#25D366',
+                                            color: 'white',
+                                            border: 'none',
+                                            boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
+                                            padding: '6px 14px',
+                                            borderRadius: '99px',
+                                            fontWeight: 'bold',
+                                            fontSize: '10px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            cursor: 'pointer',
+                                            transition: 'transform 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                     >
                                         <MessageSquare size={12} fill="white" />
                                         Invia a Me Stesso
