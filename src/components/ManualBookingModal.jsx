@@ -17,7 +17,7 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
     const [formData, setFormData] = useState({
         name: '',
         surname: '',
-        phone: '',
+        phone: '+39 ',
         email: ''
     });
     const [bookings, setBookings] = useState([]);
@@ -29,7 +29,7 @@ const ManualBookingModal = ({ isOpen, onClose, event }) => {
             setStep(1);
             setSelectedDate(null);
             setSelectedSlot(null);
-            setFormData({ name: '', surname: '', phone: '', email: '' });
+            setFormData({ name: '', surname: '', phone: '+39 ', email: '' });
 
             // If rolling week, set month to start_date month
             if (event.event_type === 'single_week' && event.start_date) {

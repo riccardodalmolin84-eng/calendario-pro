@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calendar as CalendarIcon, Clock, MapPin, CheckCircle, ChevronLeft, ChevronRight, Loader2, RefreshCw, Globe, ChevronDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, MapPin, CheckCircle, ChevronLeft, ChevronRight, Loader2, RefreshCw, Globe, ChevronDown, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { downloadICSFile } from '../../utils/calendar';
@@ -23,7 +23,7 @@ const BookingPage = () => {
     const [bookingFormData, setBookingFormData] = useState({
         name: '',
         surname: '',
-        phone: '',
+        phone: '+39 ',
         email: ''
     });
     const [submitting, setSubmitting] = useState(false);
@@ -460,6 +460,25 @@ const BookingPage = () => {
                                 >
                                     <span className="text-lg">🍏</span>
                                     Apple / iCal
+                                </button>
+
+                                {/* WhatsApp Reminder */}
+                                <button
+                                    onClick={() => {
+                                        const dateStr = format(selectedDate, 'd MMMM', { locale: it });
+                                        const message = `Ciao! Mi invio un promemoria per il mio appuntamento "${event.title}" il giorno ${dateStr} alle ore ${selectedSlot}.`;
+                                        const cleanPhone = bookingFormData.phone.replace(/\+/g, '').replace(/\s/g, '');
+                                        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                                    }}
+                                    style={{
+                                        backgroundColor: '#25D366',
+                                        color: 'white',
+                                        border: 'none'
+                                    }}
+                                    className="btn py-4 text-sm font-bold flex items-center justify-center gap-3 transition-all hover:scale-[1.02] shadow-lg shadow-[#25D366]/20"
+                                >
+                                    <MessageSquare size={20} fill="white" />
+                                    Mandami un promemoria su WhatsApp
                                 </button>
 
                                 <button onClick={() => window.location.reload()} className="btn btn-primary py-4 mt-4 text-lg uppercase tracking-widest font-black">Fine</button>
