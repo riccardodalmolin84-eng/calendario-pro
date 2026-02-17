@@ -260,24 +260,23 @@ A presto!`
                                             window.open(url, '_blank');
                                         }}
                                         style={{
-                                            backgroundColor: '#25D366',
-                                            color: 'white',
+                                            backgroundColor: '#128C7E',
+                                            color: '#ffffff',
+                                            padding: '8px 16px',
+                                            borderRadius: '20px',
                                             border: 'none',
-                                            boxShadow: '0 4px 12px rgba(37, 211, 102, 0.3)',
-                                            padding: '6px 14px',
-                                            borderRadius: '99px',
                                             fontWeight: 'bold',
-                                            fontSize: '10px',
+                                            fontSize: '11px',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            gap: '6px',
+                                            gap: '8px',
                                             cursor: 'pointer',
-                                            transition: 'transform 0.2s'
+                                            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                            appearance: 'none',
+                                            WebkitAppearance: 'none'
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
                                     >
-                                        <MessageSquare size={12} fill="white" />
+                                        <MessageSquare size={14} fill="white" />
                                         Invia a Me Stesso
                                     </button>
                                 )}

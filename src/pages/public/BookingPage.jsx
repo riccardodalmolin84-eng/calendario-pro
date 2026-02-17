@@ -249,7 +249,7 @@ const BookingPage = () => {
                                     <div className="flex items-center gap-4 text-sm font-bold text-[#444]">
                                         <Globe size={18} className="shrink-0" />
                                         <div className="flex items-center gap-1 cursor-pointer">
-                                            <span>Australia/Perth</span>
+                                            <span>Europe/Rome (Italia)</span>
                                             <ChevronDown size={14} />
                                         </div>
                                     </div>
