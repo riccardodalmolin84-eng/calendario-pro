@@ -19,7 +19,7 @@ const BookingPage = () => {
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedSlot, setSelectedSlot] = useState(null);
     const [timeFormat, setTimeFormat] = useState('24h');
-
+    const today = startOfToday();
     const [bookingFormData, setBookingFormData] = useState({
         name: '',
         surname: '',
