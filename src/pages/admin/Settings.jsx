@@ -56,26 +56,38 @@ A presto!`
     const handleSave = async () => {
         setSaving(true);
         try {
+            // Explicitly extract fields to avoid sending unwanted DB fields
+            const dataToSave = {
+                email: profile.email,
+                phone: profile.phone,
+                whatsapp_template: profile.whatsapp_template
+            };
+
             const { data: existing } = await supabase
                 .from('admin_profiles')
                 .select('id')
+                .limit(1)
                 .maybeSingle();
 
-            let result;
+            let error;
             if (existing) {
-                result = await supabase
+                const result = await supabase
                     .from('admin_profiles')
-                    .update(profile)
+                    .update(dataToSave)
                     .eq('id', existing.id);
+                error = result.error;
             } else {
-                result = await supabase
+                const result = await supabase
                     .from('admin_profiles')
-                    .insert([profile]);
+                    .insert([dataToSave]);
+                error = result.error;
             }
 
-            if (result.error) throw result.error;
+            if (error) throw error;
             alert('Impostazioni salvate con successo!');
+            fetchData(); // Refresh data to get latest state
         } catch (error) {
+            console.error('Save error:', error);
             alert('Errore nel salvataggio: ' + error.message);
         } finally {
             setSaving(false);

@@ -571,7 +571,7 @@ const EventsList = () => {
                                         <Phone size={14} /> Prenota
                                     </button>
                                     <button onClick={() => openEditModal(event)} className={`btn flex-1 text-xs gap-1.5 py-2.5 ${editingEventId === event.id ? 'btn-primary' : 'btn-outline'}`}>
-                                        <Edit size={14} /> {editingEventId === event.id ? 'In Corso...' : 'Edit'}
+                                        <Edit size={14} /> {editingEventId === event.id ? 'In Corso...' : 'Modifica/Vedi'}
                                     </button>
                                     <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-outline p-2.5 text-text-muted hover:text-primary" title="Copia Link">
                                         <LinkIcon size={14} />

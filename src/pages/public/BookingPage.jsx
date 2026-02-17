@@ -4,7 +4,7 @@ import { Calendar as CalendarIcon, Clock, MapPin, CheckCircle, ChevronLeft, Chev
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { downloadICSFile } from '../../utils/calendar';
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore, startOfDay, startOfWeek, endOfWeek, isSameMonth, areIntervalsOverlapping } from 'date-fns';
+import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isAfter, startOfToday, parse, addMinutes, isBefore, startOfDay, startOfWeek, endOfWeek, isSameMonth, areIntervalsOverlapping, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 const BookingPage = () => {
