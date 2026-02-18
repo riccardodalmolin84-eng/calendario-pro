@@ -265,6 +265,25 @@ const EventsList = () => {
         }
 
         try {
+            // Check for future bookings before saving changes to an existing event
+            if (editingEventId) {
+                const now = new Date().toISOString();
+                const { data: futureBookings, error: checkErr } = await supabase
+                    .from('bookings')
+                    .select('user_name, user_surname, start_time')
+                    .eq('event_id', editingEventId)
+                    .gt('start_time', now);
+
+                if (checkErr) throw checkErr;
+
+                if (futureBookings && futureBookings.length > 0) {
+                    const names = futureBookings.map(b => `${b.user_name} ${b.user_surname}`).join(', ');
+                    alert(`Hai prenotazioni su questo giorno/ora: ${names}. Cancella le prenotazioni per modificare l'evento.`);
+                    setSaving(false);
+                    return;
+                }
+            }
+
             let availabilityId = dataToSave.availability_id;
 
             // Save the availability rules first
@@ -651,18 +670,25 @@ const EventsList = () => {
 
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 overflow-y-auto max-h-[90vh]">
-                            <div className="flex justify-between items-center mb-6">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 flex flex-col max-h-[95vh]"
+                        >
+                            <div className="flex justify-between items-center mb-6 shrink-0">
                                 <div>
-                                    <h2 className="text-3xl font-bold mb-1 tracking-tight">Nuovo Tipo di Evento</h2>
-                                    <p className="text-text-muted text-sm">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
+                                    <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-tight">Nuovo Tipo di Evento</h2>
+                                    <p className="text-text-muted text-xs sm:text-sm">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
                                 </div>
-                                <button onClick={() => setShowModal(false)} className="text-text-muted hover:text-error"><Plus size={32} className="rotate-45" /></button>
+                                <button onClick={() => setShowModal(false)} className="text-text-muted hover:text-error transition-colors p-2"><Plus size={28} className="rotate-45" /></button>
                             </div>
 
-                            {renderForm()}
+                            <div className="flex-1 overflow-y-auto pr-1 -mr-1 custom-scrollbar">
+                                {renderForm()}
+                            </div>
                         </motion.div>
                     </div>
                 )}

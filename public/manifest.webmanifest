@@ -1,0 +1,17 @@
+{
+    "short_name": "Aloe",
+    "name": "CalendarioAloe - Prenotazione Appuntamenti",
+    "description": "Sistema di prenotazione appuntamenti professionale.",
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#606c38",
+    "background_color": "#0a0a0a",
+    "icons": [
+        {
+            "src": "/logo-aloe.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
