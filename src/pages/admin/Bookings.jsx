@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, Clock, User, Phone, Mail, Edit, Trash2, Search, Filter, X, Loader2, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, User, Phone, Mail, Edit, Trash2, Search, Filter, X, Loader2, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { format, parseISO, isFuture, isPast, isToday, addMinutes, startOfDay, isSameDay, parse, isBefore, areIntervalsOverlapping, getDay } from 'date-fns';
+import { format, parseISO, isFuture, isPast, isToday, addMinutes, startOfDay, isSameDay, parse, isBefore, areIntervalsOverlapping, getDay, eachDayOfInterval, startOfMonth, endOfMonth, isAfter, addDays, subMonths, addMonths } from 'date-fns';
 import { it } from 'date-fns/locale';
 import ManualBookingModal from '../../components/ManualBookingModal';
 
@@ -34,6 +34,7 @@ const BookingsList = () => {
     const [activeManualEvent, setActiveManualEvent] = useState(null);
 
     const [showEventPicker, setShowEventPicker] = useState(false);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
 
     useEffect(() => {
         fetchBookings();
@@ -90,6 +91,53 @@ const BookingsList = () => {
         }
     };
 
+    const availableDates = useMemo(() => {
+        if (!selectedEventId || !events || events.length === 0) return new Set();
+        const event = events.find(e => e.id === selectedEventId);
+        if (!event || !event.availabilities) return new Set();
+
+        const start = startOfMonth(currentMonth);
+        const end = endOfMonth(currentMonth);
+        const calendarDays = eachDayOfInterval({ start, end });
+        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+        const availableSet = new Set();
+        const duration = event.duration_minutes;
+
+        calendarDays.forEach(day => {
+            if (isBefore(day, startOfDay(new Date()))) return;
+
+            const dayName = dayNames[getDay(day)];
+            const rules = event.availabilities.rules[dayName] || [];
+            if (rules.length === 0) return;
+
+            // Simple check: has at least one slot
+            let hasFreeSlot = false;
+            for (const rule of rules) {
+                let current = parse(rule.start, 'HH:mm', day);
+                const ruleEnd = parse(rule.end, 'HH:mm', day);
+                while (isBefore(addMinutes(current, duration), ruleEnd) || format(addMinutes(current, duration), 'HH:mm') === rule.end) {
+                    const slotEnd = addMinutes(current, duration);
+                    const isOverlapping = bookings.some(b => {
+                        const bDate = parseISO(b.start_time);
+                        return isSameDay(bDate, day) && b.id !== selectedBooking?.id && areIntervalsOverlapping(
+                            { start: current, end: slotEnd },
+                            { start: parseISO(b.start_time), end: parseISO(b.end_time) }
+                        );
+                    });
+
+                    if (!isOverlapping) {
+                        hasFreeSlot = true;
+                        break;
+                    }
+                    current = addMinutes(current, duration);
+                }
+                if (hasFreeSlot) break;
+            }
+            if (hasFreeSlot) availableSet.add(day.toISOString());
+        });
+        return availableSet;
+    }, [currentMonth, selectedEventId, events, bookings, selectedBooking]);
+
     const availableSlots = useMemo(() => {
         if (!selectedDate || !selectedEventId || !events || events.length === 0) return [];
         const event = events.find(e => e.id === selectedEventId);
@@ -104,24 +152,23 @@ const BookingsList = () => {
             const rules = availability.rules[dayName] || [];
             const slots = [];
             const duration = event.duration_minutes;
-
-            // Filter bookings for this day
-            const dayBookings = bookings.filter(b => {
-                const bDate = parseISO(b.start_time);
-                return isSameDay(bDate, selectedDate) && b.id !== selectedBooking?.id;
-            });
+            const now = new Date();
 
             rules.forEach(rule => {
                 let current = parse(rule.start, 'HH:mm', selectedDate);
                 const end = parse(rule.end, 'HH:mm', selectedDate);
-                while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
+                while (isBefore(addMinutes(current, duration), end) || format(addMinutes(current, duration), 'HH:mm') === rule.end) {
                     const slotEnd = addMinutes(current, duration);
-                    const isOverlapping = dayBookings.some(b => {
-                        const bStart = parseISO(b.start_time);
-                        const bEnd = parseISO(b.end_time);
+
+                    if (isToday(selectedDate) && isBefore(current, now)) {
+                        current = addMinutes(current, duration);
+                        continue;
+                    }
+
+                    const isOverlapping = bookings.filter(b => b.id !== selectedBooking?.id).some(b => {
                         return areIntervalsOverlapping(
                             { start: current, end: slotEnd },
-                            { start: bStart, end: bEnd }
+                            { start: parseISO(b.start_time), end: parseISO(b.end_time) }
                         );
                     });
 
@@ -159,26 +206,9 @@ const BookingsList = () => {
             filtered = filtered.filter(b => isToday(parseISO(b.start_time)));
         }
 
-        // 2. Explicit sorting: "Closest to Furthest"
+        // 2. Strict Chronological Sorting: Oldest to Newest
         filtered.sort((a, b) => {
-            const dateA = parseISO(a.start_time);
-            const dateB = parseISO(b.start_time);
-            const now = new Date();
-
-            const isAFuture = dateA >= now;
-            const isBFuture = dateB >= now;
-
-            // Priority 1: Future bookings come before past bookings
-            if (isAFuture && !isBFuture) return -1;
-            if (!isAFuture && isBFuture) return 1;
-
-            if (isAFuture && isBFuture) {
-                // Priority 2: Among future bookings, soonest first (ascending)
-                return dateA - dateB;
-            } else {
-                // Priority 3: Among past bookings, most recent first (descending)
-                return dateB - dateA;
-            }
+            return parseISO(a.start_time) - parseISO(b.start_time);
         });
 
         setFilteredBookings(filtered);
@@ -430,14 +460,36 @@ const BookingsList = () => {
                                         <form onSubmit={handleSaveEdit} className="space-y-6">
                                             {/* 1. Event & Date */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="label">Data</label>
-                                                    <input
-                                                        type="date"
-                                                        className="input w-full"
-                                                        value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
-                                                        onChange={(e) => setSelectedDate(parseISO(e.target.value))}
-                                                    />
+                                                <div className="space-y-3">
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <label className="label !mb-0">Seleziona Nuova Data</label>
+                                                        <div className="flex gap-1">
+                                                            <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-black/5 rounded border border-border"><ChevronLeft size={14} /></button>
+                                                            <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-black/5 rounded border border-border"><ChevronRight size={14} /></button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-[10px] font-bold uppercase text-center text-text-muted mb-2">{format(currentMonth, 'MMMM yyyy', { locale: it })}</div>
+                                                    <div className="grid grid-cols-7 gap-1">
+                                                        {['L', 'M', 'M', 'G', 'V', 'S', 'D'].map(d => <div key={d} className="text-[8px] text-center opacity-40 font-bold">{d}</div>)}
+                                                        {Array.from({ length: (getDay(startOfMonth(currentMonth)) + 6) % 7 }).map((_, i) => <div key={i} />)}
+                                                        {eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) }).map(day => {
+                                                            const isAvailable = availableDates.has(day.toISOString());
+                                                            const isSelected = selectedDate && isSameDay(day, selectedDate);
+                                                            return (
+                                                                <button
+                                                                    key={day.toISOString()}
+                                                                    type="button"
+                                                                    disabled={!isAvailable}
+                                                                    onClick={() => setSelectedDate(day)}
+                                                                    className={`aspect-square flex items-center justify-center rounded-lg text-[10px] font-bold transition-all
+                                                                        ${isSelected ? 'bg-primary text-white shadow-md' : isAvailable ? 'bg-primary/10 text-primary border border-primary/20' : 'opacity-20 cursor-not-allowed'}
+                                                                    `}
+                                                                >
+                                                                    {format(day, 'd')}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <label className="label">Nuovo Orario</label>

@@ -125,8 +125,8 @@ const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopy })
     const isEnabled = rules && rules.length > 0;
 
     return (
-        <div className="flex flex-col gap-2 py-4 border-b border-white/5 last:border-none">
-            <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 py-4 border-b border-white/5 last:border-none">
+            <div className="flex items-center gap-4 shrink-0">
                 {/* Switch Toggle */}
                 <button
                     type="button"
@@ -136,55 +136,55 @@ const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopy })
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
 
-                <span className={`w-24 font-bold text-xs uppercase tracking-tight ${isEnabled ? 'text-text-main' : 'text-text-muted opacity-30'}`}>{day}</span>
+                <span className={`w-20 sm:w-24 font-bold text-xs uppercase tracking-tight ${isEnabled ? 'text-text-main' : 'text-text-muted opacity-30'}`}>{day}</span>
+            </div>
 
-                {isEnabled ? (
-                    <div className="flex-1 flex flex-col gap-2">
-                        {rules.map((rule, idx) => (
-                            <div key={idx} className="flex items-center gap-2 group/row">
-                                <div className="flex items-center gap-2 bg-bg-input border border-border/50 px-2 py-1 rounded-lg shadow-inner">
-                                    <input
-                                        type="time"
-                                        className="bg-transparent border-none outline-none text-[11px] text-text-main font-bold cursor-pointer"
-                                        value={rule.start}
-                                        onChange={(e) => onUpdate(day, idx, 'start', e.target.value)}
-                                    />
-                                    <span className="text-text-muted text-[10px] opacity-20">-</span>
-                                    <input
-                                        type="time"
-                                        className="bg-transparent border-none outline-none text-[11px] text-text-main font-bold cursor-pointer"
-                                        value={rule.end}
-                                        onChange={(e) => onUpdate(day, idx, 'end', e.target.value)}
-                                    />
-                                </div>
+            {isEnabled ? (
+                <div className="flex-1 flex flex-col gap-2">
+                    {rules.map((rule, idx) => (
+                        <div key={idx} className="flex flex-wrap items-center gap-2 group/row">
+                            <div className="flex items-center gap-1.5 bg-bg-input border border-border/50 px-2 py-1 rounded-lg">
+                                <input
+                                    type="time"
+                                    className="bg-transparent border-none outline-none text-[10px] sm:text-[11px] text-text-main font-bold cursor-pointer w-11"
+                                    value={rule.start}
+                                    onChange={(e) => onUpdate(day, idx, 'start', e.target.value)}
+                                />
+                                <span className="text-text-muted text-[10px] opacity-20">-</span>
+                                <input
+                                    type="time"
+                                    className="bg-transparent border-none outline-none text-[10px] sm:text-[11px] text-text-main font-bold cursor-pointer w-11"
+                                    value={rule.end}
+                                    onChange={(e) => onUpdate(day, idx, 'end', e.target.value)}
+                                />
+                            </div>
 
+                            <button
+                                type="button"
+                                onClick={() => onRemove(day, idx)}
+                                className="p-1 text-text-muted hover:text-error md:opacity-0 group-hover/row:opacity-100 transition-opacity"
+                            >
+                                <X size={14} />
+                            </button>
+
+                            {idx === rules.length - 1 && (
                                 <button
                                     type="button"
-                                    onClick={() => onRemove(day, idx)}
-                                    className="p-1 text-text-muted hover:text-error md:opacity-0 group-hover/row:opacity-100 transition-opacity"
+                                    onClick={() => onAdd(day)}
+                                    className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors ml-auto"
+                                    title="Aggiungi fascia oraria"
                                 >
-                                    <X size={14} />
+                                    <Plus size={14} />
                                 </button>
-
-                                {idx === rules.length - 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onAdd(day)}
-                                        className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors ml-auto"
-                                        title="Aggiungi fascia oraria"
-                                    >
-                                        <Plus size={14} />
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-error/5 border border-error/10">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-error/60">Chiuso</span>
-                    </div>
-                )}
-            </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-error/5 border border-error/10 sm:ml-0">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-error/60">Chiuso</span>
+                </div>
+            )}
         </div>
     );
 };
@@ -400,7 +400,7 @@ const EventsList = () => {
             setTempRules(initialRules);
         }
 
-        setShowModal(false);
+        setShowModal(true);
     };
 
     const openCreateModal = () => {
@@ -670,26 +670,30 @@ const EventsList = () => {
 
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-                            className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 flex flex-col max-h-[95vh]"
-                        >
-                            <div className="flex justify-between items-center mb-6 shrink-0">
-                                <div>
-                                    <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-tight">Nuovo Tipo di Evento</h2>
-                                    <p className="text-text-muted text-xs sm:text-sm">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
+                    <div className="fixed inset-0 z-[100] overflow-y-auto">
+                        <div className="min-h-full flex items-center justify-center p-2 sm:p-4">
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="fixed inset-0 bg-black/80 backdrop-blur-md" />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                                className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 flex flex-col max-h-[95vh] sm:max-h-none"
+                            >
+                                <div className="flex justify-between items-center mb-6 shrink-0">
+                                    <div>
+                                        <h2 className="text-2xl sm:text-3xl font-bold mb-1 tracking-tight">Nuovo Tipo di Evento</h2>
+                                        <p className="text-text-muted text-xs sm:text-sm">Definisci i dettagli e le regole di ricorrenza dell'evento.</p>
+                                    </div>
+                                    <button onClick={() => setShowModal(false)} className="text-text-muted hover:text-error transition-colors p-2"><Plus size={28} className="rotate-45" /></button>
                                 </div>
-                                <button onClick={() => setShowModal(false)} className="text-text-muted hover:text-error transition-colors p-2"><Plus size={28} className="rotate-45" /></button>
-                            </div>
 
-                            <div className="flex-1 overflow-y-auto pr-1 -mr-1 custom-scrollbar">
-                                {renderForm()}
-                            </div>
-                        </motion.div>
+                                <div className="flex-1 overflow-y-auto overflow-x-auto px-1 sm:px-4 -mx-1 sm:-mx-4 custom-scrollbar">
+                                    <div className="min-w-0">
+                                        {renderForm()}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
                     </div>
                 )}
             </AnimatePresence>
