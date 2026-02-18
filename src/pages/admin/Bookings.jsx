@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { format, parseISO, isFuture, isPast, isToday, addMinutes, startOfDay, isSameDay, parse, isBefore, areIntervalsOverlapping, getDay } from 'date-fns';
 import { it } from 'date-fns/locale';
+import ManualBookingModal from '../../components/ManualBookingModal';
 
 const BookingsList = () => {
     const [bookings, setBookings] = useState([]);
@@ -29,6 +30,8 @@ const BookingsList = () => {
     const [selectedDate, setSelectedDate] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [showManualModal, setShowManualModal] = useState(false);
+    const [activeManualEvent, setActiveManualEvent] = useState(null);
 
     useEffect(() => {
         fetchBookings();
@@ -241,19 +244,24 @@ const BookingsList = () => {
                 </div>
                 <button
                     onClick={() => {
-                        setIsCreating(true);
-                        setEditingId(null);
-                        setSelectedBooking(null);
-                        setEditFormData({
-                            user_name: '', user_surname: '', user_phone: '', user_email: '', start_time: '', end_time: ''
-                        });
-                        if (events.length > 0) setSelectedEventId(events[0].id);
-                        setSelectedDate(new Date());
-                        setShowEditModal(true);
+                        if (events.length === 1) {
+                            setActiveManualEvent(events[0]);
+                            setShowManualModal(true);
+                        } else {
+                            // If multiple events, open the picker modal
+                            // For now, we'll just pick the first one and open the manual modal
+                            // since that's the most common case for a single service provider
+                            if (events.length > 0) {
+                                setActiveManualEvent(events[0]);
+                                setShowManualModal(true);
+                            } else {
+                                alert("Crea prima un evento nelle impostazioni!");
+                            }
+                        }
                     }}
-                    className="btn btn-primary flex items-center gap-2"
+                    className="btn btn-primary flex items-center gap-2 group hover:scale-105 active:scale-95 transition-all"
                 >
-                    <Calendar size={20} />
+                    <Calendar size={20} className="group-hover:rotate-12 transition-transform" />
                     Nuova Prenotazione
                 </button>
                 <div className="flex gap-2">
@@ -579,7 +587,17 @@ const BookingsList = () => {
                         </motion.div>
                     </div>
                 )}
-            </AnimatePresence>
+                {/* Manual Booking Modal Implementation */}
+                {activeManualEvent && (
+                    <ManualBookingModal
+                        isOpen={showManualModal}
+                        onClose={() => {
+                            setShowManualModal(false);
+                            fetchBookings(); // Refresh list after booking
+                        }}
+                        event={activeManualEvent}
+                    />
+                )}
         </div>
     );
 };
