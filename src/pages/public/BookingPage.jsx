@@ -230,7 +230,7 @@ const BookingPage = () => {
                                 <div className="space-y-6">
                                     <div className="flex items-start gap-4 text-sm font-bold text-[#444]">
                                         <Clock size={18} className="shrink-0 mt-0.5" />
-                                        <span>{event.duration_minutes}m</span>
+                                        <span>{event.duration_minutes} min</span>
                                     </div>
                                     <div className="flex items-start gap-4 text-sm font-bold text-[#444]">
                                         <RefreshCw size={18} className="shrink-0 mt-0.5" />
