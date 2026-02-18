@@ -121,7 +121,7 @@ const WeekPicker = ({ selectedDate, onChange, eventType }) => {
     );
 };
 
-const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove }) => {
+const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopy }) => {
     const isEnabled = rules && rules.length > 0;
 
     return (
@@ -161,26 +161,38 @@ const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove }) => {
                                 <button
                                     type="button"
                                     onClick={() => onRemove(day, idx)}
-                                    className="p-1 text-text-muted hover:text-error opacity-0 group-hover/row:opacity-100 transition-opacity"
+                                    className="p-1 text-text-muted hover:text-error md:opacity-0 group-hover/row:opacity-100 transition-opacity"
                                 >
                                     <X size={14} />
                                 </button>
 
                                 {idx === rules.length - 1 && (
-                                    <button
-                                        type="button"
-                                        onClick={() => onAdd(day)}
-                                        className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors ml-auto"
-                                        title="Aggiungi fascia oraria"
-                                    >
-                                        <Plus size={14} />
-                                    </button>
+                                    <div className="flex items-center gap-1 ml-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => onCopy(day)}
+                                            className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors text-[9px] font-bold uppercase"
+                                            title="Copia orari su tutti gli altri giorni"
+                                        >
+                                            Copia su tutti
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onAdd(day)}
+                                            className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors"
+                                            title="Aggiungi fascia oraria"
+                                        >
+                                            <Plus size={14} />
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <span className="text-xs text-text-muted italic opacity-40">Non disponibile</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-error/5 border border-error/10">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-error/60">Chiuso</span>
+                    </div>
                 )}
             </div>
         </div>
@@ -491,6 +503,7 @@ const EventsList = () => {
                                     onUpdate={updateDayRule}
                                     onAdd={addDayRule}
                                     onRemove={removeDayRule}
+                                    onCopy={copyToAll}
                                 />
                             ))}
                         </div>
@@ -566,17 +579,37 @@ const EventsList = () => {
                                         <div className="flex items-center gap-3 text-xs font-semibold text-text-main"><Calendar size={16} className="text-primary" /> <span className="truncate">{event.availabilities?.title || 'Nessuna regola'}</span></div>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => { setSelectedEventForManual(event); setShowManualModal(true); }} className="btn btn-primary flex-1 text-xs gap-1.5 py-2.5 shadow-md shadow-primary/20" title="Prenotazione Manuale (Telefono)">
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={() => { setSelectedEventForManual(event); setShowManualModal(true); }}
+                                        className="btn btn-primary flex-1 min-w-[100px] text-xs gap-1.5 py-2.5 shadow-md shadow-primary/20"
+                                        title="Prenotazione Manuale (Telefono)"
+                                    >
                                         <Phone size={14} /> Prenota
                                     </button>
-                                    <button onClick={() => openEditModal(event)} className={`btn flex-1 text-xs gap-1.5 py-2.5 ${editingEventId === event.id ? 'btn-primary' : 'btn-outline'}`}>
+                                    <button
+                                        onClick={() => openEditModal(event)}
+                                        className={`btn flex-1 min-w-[120px] text-xs gap-1.5 py-2.5 ${editingEventId === event.id ? 'btn-primary' : 'btn-outline'}`}
+                                    >
                                         <Edit size={14} /> {editingEventId === event.id ? 'In Corso...' : 'Modifica/Vedi'}
                                     </button>
-                                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }} className="btn btn-outline p-2.5 text-text-muted hover:text-primary" title="Copia Link">
-                                        <LinkIcon size={14} />
-                                    </button>
-                                    <a href={`/book/${event.slug}`} target="_blank" rel="noreferrer" className="btn btn-outline p-2.5 text-text-muted hover:text-primary"><ExternalLink size={14} /></a>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${event.slug}`); alert('Link copiato!'); }}
+                                            className="btn btn-outline p-2.5 text-text-muted hover:text-primary aspect-square"
+                                            title="Copia Link"
+                                        >
+                                            <LinkIcon size={14} />
+                                        </button>
+                                        <a
+                                            href={`/book/${event.slug}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="btn btn-outline p-2.5 text-text-muted hover:text-primary aspect-square"
+                                        >
+                                            <ExternalLink size={14} />
+                                        </a>
+                                    </div>
                                 </div>
                             </motion.div>
 
@@ -599,6 +632,28 @@ const EventsList = () => {
                                     </motion.div>
                                 )}
                             </AnimatePresence>
+
+                            {/* Inline Manual Booking (Expansion) */}
+                            <AnimatePresence>
+                                {showManualModal && selectedEventForManual?.id === event.id && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                        className="col-span-1 md:col-span-2 lg:col-span-3 overflow-hidden"
+                                    >
+                                        <ManualBookingModal
+                                            isOpen={true}
+                                            isInline={true}
+                                            onClose={() => {
+                                                setShowManualModal(false);
+                                                setSelectedEventForManual(null);
+                                            }}
+                                            event={event}
+                                        />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </React.Fragment>
                     ))
                 )}
@@ -606,7 +661,7 @@ const EventsList = () => {
 
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
                         <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }} className="card w-full max-w-4xl relative z-10 shadow-2xl border-primary/20 overflow-y-auto max-h-[90vh]">
                             <div className="flex justify-between items-center mb-6">
@@ -622,12 +677,6 @@ const EventsList = () => {
                     </div>
                 )}
             </AnimatePresence>
-
-            <ManualBookingModal
-                isOpen={showManualModal}
-                onClose={() => setShowManualModal(false)}
-                event={selectedEventForManual}
-            />
         </div>
     );
 };
