@@ -136,6 +136,11 @@ A presto!`
             message = message.replace(regex, link);
         });
 
+        // NEW: Replace dynamic placeholders with dummy data for "Real Preview" feel
+        const firstEvent = events[0]?.title || "Trattamento Aloe";
+        message = message.replace(/{user_name}/g, "Mario Rossi");
+        message = message.replace(/{event_title}/g, firstEvent);
+
         // Replace admin name
         message = message.replace(/{admin_name}/g, profile.email.split('@')[0] || 'Admin');
 
@@ -195,7 +200,7 @@ A presto!`
                             <label className="label">Editor Messaggio (Usa i tag qui sotto)</label>
                             <textarea
                                 ref={textAreaRef}
-                                className="input flex-1 min-h-[400px] md:min-h-[300px] leading-relaxed font-mono text-sm md:text-xs resize-none p-4"
+                                className="input flex-1 min-h-[800px] md:min-h-[350px] leading-relaxed font-mono text-base md:text-sm resize-none p-4 md:p-6"
                                 value={profile.whatsapp_template}
                                 onChange={(e) => setProfile({ ...profile, whatsapp_template: e.target.value })}
                                 placeholder="Scrivi qui il tuo messaggio..."
@@ -222,7 +227,22 @@ A presto!`
                                 >
                                     <Plus size={14} />
                                     <span>{'{event_links}'}</span>
-                                    <span className="opacity-50 font-normal">(Tutti i link)</span>
+                                </button>
+
+                                <button
+                                    onClick={() => insertTag('{user_name}')}
+                                    className="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 text-xs font-bold text-blue-600 transition-all flex items-center gap-2"
+                                >
+                                    <Plus size={14} />
+                                    <span>{'{user_name}'}</span>
+                                </button>
+
+                                <button
+                                    onClick={() => insertTag('{event_title}')}
+                                    className="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-xs font-bold text-purple-600 transition-all flex items-center gap-2"
+                                >
+                                    <Plus size={14} />
+                                    <span>{'{event_title}'}</span>
                                 </button>
                             </div>
 
