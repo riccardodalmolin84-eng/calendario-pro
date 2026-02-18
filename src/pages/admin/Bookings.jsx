@@ -593,7 +593,7 @@ const BookingsList = () => {
             {/* Event Picker Modal (when multiple events exist) */}
             <AnimatePresence>
                 {showEventPicker && (
-                    <div className="fixed inset-0 flex items-center justify-center p-4 z-[60]">
+                    <div className="fixed inset-0 flex items-center justify-center p-4 z-[100]">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -605,10 +605,10 @@ const BookingsList = () => {
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="card relative z-10 w-full max-w-md bg-bg-card border-primary/20 p-6"
+                            className="card relative z-[101] w-full max-w-md bg-bg-card border-primary/20 p-6"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold">Cosa desidera prenotare?</h2>
+                                <h2 className="text-xl font-bold text-primary">Cosa desidera prenotare?</h2>
                                 <button onClick={() => setShowEventPicker(false)} className="p-2 hover:bg-white/5 rounded-full">
                                     <X size={20} />
                                 </button>
