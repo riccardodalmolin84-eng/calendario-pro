@@ -33,6 +33,8 @@ const BookingsList = () => {
     const [showManualModal, setShowManualModal] = useState(false);
     const [activeManualEvent, setActiveManualEvent] = useState(null);
 
+    const [showEventPicker, setShowEventPicker] = useState(false);
+
     useEffect(() => {
         fetchBookings();
         fetchEvents();
@@ -41,6 +43,20 @@ const BookingsList = () => {
     useEffect(() => {
         applyFilters();
     }, [bookings, searchTerm, filterStatus]);
+
+    const handleNewBookingClick = () => {
+        if (events.length === 0) {
+            alert("Crea prima un evento nelle impostazioni!");
+            return;
+        }
+
+        if (events.length === 1) {
+            setActiveManualEvent(events[0]);
+            setShowManualModal(true);
+        } else {
+            setShowEventPicker(true);
+        }
+    };
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -243,22 +259,7 @@ const BookingsList = () => {
                     <p className="text-text-muted">Gestisci tutti gli appuntamenti</p>
                 </div>
                 <button
-                    onClick={() => {
-                        if (events.length === 1) {
-                            setActiveManualEvent(events[0]);
-                            setShowManualModal(true);
-                        } else {
-                            // If multiple events, open the picker modal
-                            // For now, we'll just pick the first one and open the manual modal
-                            // since that's the most common case for a single service provider
-                            if (events.length > 0) {
-                                setActiveManualEvent(events[0]);
-                                setShowManualModal(true);
-                            } else {
-                                alert("Crea prima un evento nelle impostazioni!");
-                            }
-                        }
-                    }}
+                    onClick={handleNewBookingClick}
                     className="btn btn-primary flex items-center gap-2 group hover:scale-105 active:scale-95 transition-all"
                 >
                     <Calendar size={20} className="group-hover:rotate-12 transition-transform" />
@@ -584,6 +585,53 @@ const BookingsList = () => {
                                     </button>
                                 </div>
                             </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Event Picker Modal (when multiple events exist) */}
+            <AnimatePresence>
+                {showEventPicker && (
+                    <div className="fixed inset-0 flex items-center justify-center p-4 z-[60]">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowEventPicker(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="card relative z-10 w-full max-w-md bg-bg-card border-primary/20 p-6"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold">Cosa desidera prenotare?</h2>
+                                <button onClick={() => setShowEventPicker(false)} className="p-2 hover:bg-white/5 rounded-full">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                {events.map(ev => (
+                                    <button
+                                        key={ev.id}
+                                        onClick={() => {
+                                            setActiveManualEvent(ev);
+                                            setShowEventPicker(false);
+                                            setShowManualModal(true);
+                                        }}
+                                        className="flex items-center justify-between p-4 rounded-xl border border-glass-border bg-glass-bg hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                    >
+                                        <div className="text-left">
+                                            <p className="font-bold text-text-main group-hover:text-primary transition-colors">{ev.title}</p>
+                                            <p className="text-xs text-text-muted">{ev.duration_minutes} minuti</p>
+                                        </div>
+                                        <Clock size={18} className="text-text-muted group-hover:text-primary transition-colors" />
+                                    </button>
+                                ))}
+                            </div>
                         </motion.div>
                     </div>
                 )}
