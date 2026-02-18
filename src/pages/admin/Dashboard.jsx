@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Calendar, Clock, ArrowUpRight } from 'lucide-react';
+import { Users, Calendar, Clock, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 
-const StatCard = ({ title, value, icon, delay }) => (
+const StatCard = ({ title, value, icon, trend, delay }) => (
     <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -15,9 +15,11 @@ const StatCard = ({ title, value, icon, delay }) => (
             <div className="bg-glass-bg p-3 rounded-xl border border-glass-border">
                 {icon}
             </div>
-            <span className="text-success flex items-center text-xs font-bold">
-                +0% <ArrowUpRight size={12} />
-            </span>
+            {trend !== undefined && (
+                <span className={`${trend >= 0 ? 'text-success' : 'text-error'} flex items-center text-xs font-bold bg-glass-bg px-2 py-1 rounded-lg border border-glass-border`}>
+                    {trend >= 0 ? '+' : ''}{trend}% {trend >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                </span>
+            )}
         </div>
         <div>
             <h3 className="text-text-muted text-sm font-medium">{title}</h3>
@@ -30,7 +32,9 @@ const AdminDashboard = () => {
     const [stats, setStats] = useState({
         totalBookings: 0,
         activeEvents: 0,
-        totalHours: 0
+        totalHours: 0,
+        bookingsTrend: 0,
+        hoursTrend: 0
     });
     const [recentBookings, setRecentBookings] = useState([]);
     const [upcomingBookings, setUpcomingBookings] = useState([]);
@@ -90,10 +94,49 @@ const AdminDashboard = () => {
 
             setUpcomingBookings(upcoming || []);
 
+            // 6. Calculate Trends (last 30 days vs previous 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const sixtyDaysAgo = new Date();
+            sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+            const calculateTrend = (items, dateField, splitDate, compareDate) => {
+                const recentPeriod = items.filter(item => new Date(item[dateField]) >= splitDate).length;
+                const previousPeriod = items.filter(item => {
+                    const d = new Date(item[dateField]);
+                    return d >= compareDate && d < splitDate;
+                }).length;
+
+                if (previousPeriod === 0) return recentPeriod > 0 ? 100 : 0;
+                return Math.round(((recentPeriod - previousPeriod) / previousPeriod) * 100);
+            };
+
+            const bookingsTrend = calculateTrend(allBookings || [], 'created_at', thirtyDaysAgo, sixtyDaysAgo);
+
+            // Hours trend needs minutes calculation for both periods
+            const getMinutesInPeriod = (items, start, end) => {
+                return items
+                    .filter(item => {
+                        const d = new Date(item.start_time);
+                        return d >= start && d < (end || new Date());
+                    })
+                    .reduce((acc, item) => {
+                        const s = new Date(item.start_time);
+                        const e = new Date(item.end_time);
+                        return acc + (e - s) / (1000 * 60);
+                    }, 0);
+            };
+
+            const recentMinutes = getMinutesInPeriod(allBookings || [], thirtyDaysAgo);
+            const previousMinutes = getMinutesInPeriod(allBookings || [], sixtyDaysAgo, thirtyDaysAgo);
+            const hoursTrend = previousMinutes === 0 ? (recentMinutes > 0 ? 100 : 0) : Math.round(((recentMinutes - previousMinutes) / previousMinutes) * 100);
+
             setStats({
                 totalBookings: bookingsCount || 0,
                 activeEvents: eventsCount || 0,
-                totalHours: Math.round(totalMinutes / 60)
+                totalHours: Math.round(totalMinutes / 60),
+                bookingsTrend,
+                hoursTrend
             });
 
         } catch (error) {
@@ -115,6 +158,7 @@ const AdminDashboard = () => {
                     title="Prenotazioni Totali"
                     value={loading ? "..." : stats.totalBookings}
                     icon={<Users className="text-primary" size={24} />}
+                    trend={loading ? undefined : stats.bookingsTrend}
                     delay={0.1}
                 />
                 <StatCard
@@ -127,6 +171,7 @@ const AdminDashboard = () => {
                     title="Ore Prenotate"
                     value={loading ? "..." : `${stats.totalHours}h`}
                     icon={<Clock className="text-primary" size={24} />}
+                    trend={loading ? undefined : stats.hoursTrend}
                     delay={0.3}
                 />
             </div>
