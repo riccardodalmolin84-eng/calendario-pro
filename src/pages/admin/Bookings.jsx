@@ -78,47 +78,64 @@ const BookingsList = () => {
 
 
     const fetchEvents = async () => {
-        const { data } = await supabase.from('events').select('*, availabilities(*)');
-        if (data) setEvents(data);
+        try {
+            const { data, error } = await supabase.from('events').select('*, availabilities(*)');
+            if (error) throw error;
+            if (data) setEvents(data);
+        } catch (err) {
+            console.error('Error fetching events:', err);
+            // Fallback for missing/broken relationship
+            const { data } = await supabase.from('events').select('*');
+            if (data) setEvents(data);
+        }
     };
 
     const availableSlots = useMemo(() => {
-        if (!selectedDate || !selectedEventId || !events) return [];
+        if (!selectedDate || !selectedEventId || !events || events.length === 0) return [];
         const event = events.find(e => e.id === selectedEventId);
         if (!event || !event.availabilities) return [];
 
-        const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
-        const dayName = dayNames[getDay(selectedDate)];
+        try {
+            const dayNames = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+            const dayIndex = getDay(selectedDate);
+            const dayName = dayNames[dayIndex];
 
-        const availability = event.availabilities;
-        const rules = availability.rules[dayName] || [];
-        const slots = [];
-        const duration = event.duration_minutes;
+            const availability = event.availabilities;
+            const rules = availability.rules[dayName] || [];
+            const slots = [];
+            const duration = event.duration_minutes;
 
-        // Filter bookings for this day
-        const dayBookings = bookings.filter(b => isSameDay(parseISO(b.start_time), selectedDate) && b.id !== selectedBooking?.id);
+            // Filter bookings for this day
+            const dayBookings = bookings.filter(b => {
+                const bDate = parseISO(b.start_time);
+                return isSameDay(bDate, selectedDate) && b.id !== selectedBooking?.id;
+            });
 
-        rules.forEach(rule => {
-            let current = parse(rule.start, 'HH:mm', selectedDate);
-            const end = parse(rule.end, 'HH:mm', selectedDate);
-            while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
-                const slotEnd = addMinutes(current, duration);
-                const isOverlapping = dayBookings.some(b => {
-                    const bStart = parseISO(b.start_time);
-                    const bEnd = parseISO(b.end_time);
-                    return areIntervalsOverlapping(
-                        { start: current, end: slotEnd },
-                        { start: bStart, end: bEnd }
-                    );
-                });
+            rules.forEach(rule => {
+                let current = parse(rule.start, 'HH:mm', selectedDate);
+                const end = parse(rule.end, 'HH:mm', selectedDate);
+                while (isBefore(addMinutes(current, duration), end) || isSameDay(addMinutes(current, duration), end)) {
+                    const slotEnd = addMinutes(current, duration);
+                    const isOverlapping = dayBookings.some(b => {
+                        const bStart = parseISO(b.start_time);
+                        const bEnd = parseISO(b.end_time);
+                        return areIntervalsOverlapping(
+                            { start: current, end: slotEnd },
+                            { start: bStart, end: bEnd }
+                        );
+                    });
 
-                if (!isOverlapping) {
-                    slots.push(format(current, 'HH:mm'));
+                    if (!isOverlapping) {
+                        slots.push(format(current, 'HH:mm'));
+                    }
+                    current = addMinutes(current, duration);
                 }
-                current = addMinutes(current, duration);
-            }
-        });
-        return slots;
+            });
+            return slots;
+        } catch (err) {
+            console.error('Error calculating available slots:', err);
+            return [];
+        }
     }, [selectedDate, selectedEventId, events, bookings, selectedBooking]);
     const applyFilters = () => {
         let filtered = [...bookings];
@@ -593,23 +610,23 @@ const BookingsList = () => {
             {/* Event Picker Modal (when multiple events exist) */}
             <AnimatePresence>
                 {showEventPicker && (
-                    <div className="fixed inset-0 flex items-center justify-center p-4 z-[100]">
+                    <div className="fixed inset-0 flex items-center justify-center p-4 z-[9999]">
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setShowEventPicker(false)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
                         />
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            initial={{ opacity: 0, scale: 0.9, y: 30 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="card relative z-[101] w-full max-w-md bg-bg-card border-primary/20 p-6"
+                            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                            className="card relative z-[10000] w-full max-w-sm bg-[#111] border-white/10 p-6 shadow-2xl"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-primary">Cosa desidera prenotare?</h2>
-                                <button onClick={() => setShowEventPicker(false)} className="p-2 hover:bg-white/5 rounded-full">
+                                <h2 className="text-lg font-bold text-white tracking-tight">Quale servizio prenoti?</h2>
+                                <button onClick={() => setShowEventPicker(false)} className="p-2 hover:bg-white/5 rounded-full text-white/40">
                                     <X size={20} />
                                 </button>
                             </div>
@@ -622,13 +639,15 @@ const BookingsList = () => {
                                             setShowEventPicker(false);
                                             setShowManualModal(true);
                                         }}
-                                        className="flex items-center justify-between p-4 rounded-xl border border-glass-border bg-glass-bg hover:border-primary/50 hover:bg-primary/5 transition-all group"
+                                        className="flex items-center justify-between p-4 rounded-2xl border border-white/5 bg-white/5 hover:border-primary/50 hover:bg-primary/10 transition-all group"
                                     >
                                         <div className="text-left">
-                                            <p className="font-bold text-text-main group-hover:text-primary transition-colors">{ev.title}</p>
-                                            <p className="text-xs text-text-muted">{ev.duration_minutes} minuti</p>
+                                            <p className="font-bold text-white group-hover:text-primary transition-colors">{ev.title}</p>
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-text-muted mt-1 opacity-50">{ev.duration_minutes} minuti</p>
                                         </div>
-                                        <Clock size={18} className="text-text-muted group-hover:text-primary transition-colors" />
+                                        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                                            <Clock size={16} />
+                                        </div>
                                     </button>
                                 ))}
                             </div>
@@ -638,16 +657,19 @@ const BookingsList = () => {
             </AnimatePresence>
 
             {/* Manual Booking Modal Implementation */}
-            {activeManualEvent && (
-                <ManualBookingModal
-                    isOpen={showManualModal}
-                    onClose={() => {
-                        setShowManualModal(false);
-                        fetchBookings(); // Refresh list after booking
-                    }}
-                    event={activeManualEvent}
-                />
-            )}
+            <AnimatePresence>
+                {showManualModal && activeManualEvent && (
+                    <ManualBookingModal
+                        isOpen={showManualModal}
+                        onClose={() => {
+                            setShowManualModal(false);
+                            setActiveManualEvent(null);
+                            fetchBookings();
+                        }}
+                        event={activeManualEvent}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
