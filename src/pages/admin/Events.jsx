@@ -167,24 +167,14 @@ const WeekDayRow = ({ day, rules, onToggle, onUpdate, onAdd, onRemove, onCopy })
                                 </button>
 
                                 {idx === rules.length - 1 && (
-                                    <div className="flex items-center gap-1 ml-auto">
-                                        <button
-                                            type="button"
-                                            onClick={() => onCopy(day)}
-                                            className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors text-[9px] font-bold uppercase"
-                                            title="Copia orari su tutti gli altri giorni"
-                                        >
-                                            Copia su tutti
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onAdd(day)}
-                                            className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors"
-                                            title="Aggiungi fascia oraria"
-                                        >
-                                            <Plus size={14} />
-                                        </button>
-                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => onAdd(day)}
+                                        className="p-1.5 bg-primary/5 hover:bg-primary/10 border border-primary/10 rounded-lg text-primary transition-colors ml-auto"
+                                        title="Aggiungi fascia oraria"
+                                    >
+                                        <Plus size={14} />
+                                    </button>
                                 )}
                             </div>
                         ))}
