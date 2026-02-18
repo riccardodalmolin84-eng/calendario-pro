@@ -587,17 +587,19 @@ const BookingsList = () => {
                         </motion.div>
                     </div>
                 )}
-                {/* Manual Booking Modal Implementation */}
-                {activeManualEvent && (
-                    <ManualBookingModal
-                        isOpen={showManualModal}
-                        onClose={() => {
-                            setShowManualModal(false);
-                            fetchBookings(); // Refresh list after booking
-                        }}
-                        event={activeManualEvent}
-                    />
-                )}
+            </AnimatePresence>
+
+            {/* Manual Booking Modal Implementation */}
+            {activeManualEvent && (
+                <ManualBookingModal
+                    isOpen={showManualModal}
+                    onClose={() => {
+                        setShowManualModal(false);
+                        fetchBookings(); // Refresh list after booking
+                    }}
+                    event={activeManualEvent}
+                />
+            )}
         </div>
     );
 };
