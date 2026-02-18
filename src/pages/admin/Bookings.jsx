@@ -317,6 +317,29 @@ const BookingsList = () => {
                 ))}
             </div>
 
+            {/* Manual Booking Tool (Inline Expansion) */}
+            <AnimatePresence>
+                {showManualModal && activeManualEvent && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+                        exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <ManualBookingModal
+                            isOpen={true}
+                            isInline={true}
+                            onClose={() => {
+                                setShowManualModal(false);
+                                setActiveManualEvent(null);
+                                fetchBookings();
+                            }}
+                            event={activeManualEvent}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Bookings List */}
             {loading ? (
                 <div className="flex justify-center items-center py-20">
@@ -656,20 +679,6 @@ const BookingsList = () => {
                 )}
             </AnimatePresence>
 
-            {/* Manual Booking Modal Implementation */}
-            <AnimatePresence>
-                {showManualModal && activeManualEvent && (
-                    <ManualBookingModal
-                        isOpen={showManualModal}
-                        onClose={() => {
-                            setShowManualModal(false);
-                            setActiveManualEvent(null);
-                            fetchBookings();
-                        }}
-                        event={activeManualEvent}
-                    />
-                )}
-            </AnimatePresence>
         </div>
     );
 };
