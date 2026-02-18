@@ -279,7 +279,7 @@ const EventsList = () => {
 
                 if (futureBookings && futureBookings.length > 0) {
                     const names = futureBookings.map(b => `${b.user_name} ${b.user_surname}`).join(', ');
-                    alert(`Hai prenotazioni su questo giorno/ora: ${names}. Cancella le prenotazioni per modificare l'evento.`);
+                    alert(`Attenzione: ci sono ${futureBookings.length} prenotazioni FUTURE per questo evento (${names}). Eliminale per poter modificare l'indirizzo o la durata dell'evento. Puoi invece modificare liberamente eventi passati.`);
                     setSaving(false);
                     return;
                 }
@@ -433,7 +433,7 @@ const EventsList = () => {
                             <input type="number" className="input" required min="5" value={formData.duration_minutes} onChange={(e) => setFormData({ ...formData, duration_minutes: parseInt(e.target.value) })} />
                         </div>
                         <div>
-                            <label className="label">Luogo / Sede</label>
+                            <label className="label">Indirizzo</label>
                             <input type="text" className="input" placeholder="es. Studio Medico" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
                         </div>
                     </div>

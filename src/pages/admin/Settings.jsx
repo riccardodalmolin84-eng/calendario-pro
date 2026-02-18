@@ -119,24 +119,21 @@ A presto!`
         let message = profile.whatsapp_template;
         const origin = window.location.origin;
 
-        // Replace global {event_links} tag (legacy support or bulk add)
-        // We'll generate a list of ALL events for this tag for now, or maybe just "All Enabled"?
-        // Let's make {event_links} simply dump ALL event links for simplicity if used.
+        // Replace global {event_links} tag
         const allLinksText = events
             .map(e => `${e.title}: ${origin}/book/${e.slug}`)
             .join('\n');
+
+        // Use regex for global replacement
         message = message.replace(/{event_links}/g, allLinksText);
 
         // Replace specific {link:slug} tags
         events.forEach(event => {
             const tag = `{link:${event.slug}}`;
             const link = `${origin}/book/${event.slug}`;
-            // Use a global regex to replace all occurrences
-            try {
-                message = message.split(tag).join(link);
-            } catch (e) {
-                console.warn('Error replacing tag', tag, e);
-            }
+            // Escape special chars for regex if any, but slugs are safe
+            const regex = new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            message = message.replace(regex, link);
         });
 
         // Replace admin name
@@ -198,7 +195,7 @@ A presto!`
                             <label className="label">Editor Messaggio (Usa i tag qui sotto)</label>
                             <textarea
                                 ref={textAreaRef}
-                                className="input flex-1 min-h-[300px] leading-relaxed font-mono text-xs resize-none"
+                                className="input flex-1 min-h-[400px] md:min-h-[300px] leading-relaxed font-mono text-sm md:text-xs resize-none p-4"
                                 value={profile.whatsapp_template}
                                 onChange={(e) => setProfile({ ...profile, whatsapp_template: e.target.value })}
                                 placeholder="Scrivi qui il tuo messaggio..."
