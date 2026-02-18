@@ -1,17 +1,24 @@
 {
-    "short_name": "Aloe",
-    "name": "CalendarioAloe - Prenotazione Appuntamenti",
-    "description": "Sistema di prenotazione appuntamenti professionale.",
+    "short_name": "CalendarioAloe",
+    "name": "CalendarioAloe - Prenotazioni",
+    "description": "Portatale di prenotazione appuntamenti Aloe di Elisabetta.",
     "start_url": "/",
     "display": "standalone",
-    "theme_color": "#606c38",
-    "background_color": "#0a0a0a",
+    "orientation": "portrait",
+    "theme_color": "#616d39",
+    "background_color": "#ffffff",
     "icons": [
+        {
+            "src": "/logo-aloe.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
         {
             "src": "/logo-aloe.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "maskable"
         }
     ]
 }
