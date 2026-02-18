@@ -95,29 +95,13 @@ const Navbar = () => {
                                 <span>{item.name}</span>
                             </Link>
                         ))}
-                        <a
-                            href={previewUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-3 p-3 rounded-xl text-text-muted hover:bg-glass-bg hover:text-text-main transition-all mt-2 border-t border-border"
-                        >
-                            <ExternalLink size={20} />
-                            <span>Anteprima Sito</span>
-                        </a>
+
                     </motion.div>
                 )}
             </AnimatePresence>
 
             <div className="hidden md:flex items-center gap-4">
-                <a
-                    href={previewUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn-outline gap-2 text-xs border-glass-border hover:border-primary/50 group"
-                >
-                    <ExternalLink size={14} className="group-hover:text-primary transition-colors" />
-                    <span className="group-hover:text-text-main transition-colors">Anteprima Sito</span>
-                </a>
+
             </div>
         </nav>
     );
